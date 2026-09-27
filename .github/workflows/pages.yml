@@ -1,0 +1,38 @@
+# main 브랜치에 푸시하면 게임을 GitHub Pages에 올립니다.
+# 주소: https://merrypapa.github.io/moana-voyage/
+name: GitHub Pages 배포
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: 게임 파일만 모으기
+        run: |
+          mkdir _site
+          cp -r index.html style.css manifest.webmanifest .nojekyll icons src vendor _site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
