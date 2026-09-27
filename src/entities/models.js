@@ -350,7 +350,9 @@ export function animateHumanoid(p, a, dt) {
     armL = -1.6 + Math.sin(t * 2) * 0.6; armR = -1.6 - Math.sin(t * 2) * 0.6; armLz = -1.2; armRz = 1.2;
     bob = Math.abs(Math.sin(t * 2)) * 0.04; lean = Math.sin(t) * 0.1;
   } else if (state === 'sit') {
-    legL = -1.5; legR = -1.5; bob = -p.H * 0.24; armL = -0.4; armR = -0.4;
+    // 선 자세로 굳은 GLB 모델은 낮추면 바닥에 파묻히므로 그대로 서서 쉰다
+    legL = -1.5; legR = -1.5; bob = p.glb ? 0 : -p.H * 0.24; armL = -0.4; armR = -0.4;
+    if (p.glb) headX = Math.sin(t * 0.8) * 0.05;
   } else {
     const run = Math.min(1, Math.max(0, (speed - 6) / 3)); // 0=걷기, 1=달리기
     legL = Math.sin(ph) * (0.7 + 0.35 * run) * s;

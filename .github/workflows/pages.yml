@@ -32,6 +32,7 @@ jobs:
           mkdir _site
           cp -r index.html style.css manifest.webmanifest .nojekyll icons src vendor _site/
           mkdir -p _site/assets && cp -r assets/models _site/assets/
+          if [ -d assets/music ]; then cp -r assets/music _site/assets/; fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

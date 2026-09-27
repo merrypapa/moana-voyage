@@ -172,7 +172,7 @@ export class Game {
       this.renderer.shadowMap.enabled = e.target.checked;
       this.scene.traverse((o) => { if (o.material) o.material.needsUpdate = true; });
     });
-    $('optMusic').addEventListener('change', (e) => { this.audio.music = e.target.checked; });
+    $('optMusic').addEventListener('change', (e) => { this.audio.setMusic(e.target.checked); });
   }
 
   toggleMenu(v) {
@@ -756,6 +756,18 @@ export class Game {
     this.renderer.render(this.scene, this.camera);
   }
 
+  // 배경 음악 분위기 고르기
+  musicMood(L) {
+    const T = this.lalotai.tamatoa;
+    const battle = this.kakamora.active || ['rising', 'attack'].includes(this.teka.state) ||
+      (this.zone === 'lalotai' && !T.flipped) || this.stormAmount > 0.5 || this.ch2.clamActive;
+    if (battle) return 'battle';
+    if (this.zone === 'lalotai') return 'night';
+    if (L.onBoat || L.form === 'hawk' || L.state === 'swim') return 'voyage';
+    if (this.sky.light < 0.45) return 'night';
+    return 'village';
+  }
+
   // 느린 기기에서는 해상도와 그림자를 자동으로 낮춤
   adaptQuality(raw) {
     if (this.paused || document.hidden) return;
@@ -859,7 +871,7 @@ export class Game {
       this.sky.sun.target.position.copy(lp);
     }
     this.hud.update();
-    this.audio.update(dt, { sailing: this.boat.speed > 3, storm: this.stormAmount, night: 1 - this.sky.light });
+    this.audio.update(dt, { sailing: this.boat.speed > 3, storm: this.stormAmount, mood: this.musicMood(L) });
     if (this.map.open && Math.floor(this.time * 4) !== Math.floor((this.time - dt) * 4)) this.map.draw();
 
     this.saveTimer += dt;

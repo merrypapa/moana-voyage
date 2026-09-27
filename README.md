@@ -76,6 +76,10 @@ src/
 docs/GAME_DESIGN.md        기획서
 ```
 
+## 배경 음악
+
+신나는 항해 곡을 새로 만들어 넣었습니다. 마을, 항해, 밤, 전투에 따라 분위기가 바뀝니다. 내 음악으로 바꾸는 방법은 `assets/music/README.md`를 보세요.
+
 ## 캐릭터 3D 모델 바꾸기
 
 `assets/README.md`를 보세요. 원본을 `assets/source/`에 넣고 `npm install && npm run compress-models`를 실행하면 됩니다.

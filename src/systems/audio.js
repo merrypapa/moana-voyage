@@ -1,4 +1,8 @@
-// 소리: 외부 파일 없이 Web Audio로 합성 (파도, 북, 효과음, 배경 음악)
+// 소리: 외부 파일 없이 Web Audio로 합성 (파도, 북, 효과음)
+// 배경 음악은 music.js (새로 만든 곡). assets/music/bgm.mp3 가 있으면 그 파일을 대신 튼다.
+import { Music } from './music.js';
+
+const CUSTOM_BGM = ['assets/music/bgm.mp3'];
 export class Audio {
   constructor() {
     this.ctx = null;
@@ -32,11 +36,38 @@ export class Audio {
     src.connect(lp); lp.connect(this.oceanGain); this.oceanGain.connect(this.master);
     src.start();
     this.lfoT = 0;
+    this.song = new Music(this.ctx, this.bgm);
+    this.bgm.gain.value = 0.5;
+    this.tryCustomBgm();
+  }
+
+  // 사용자 음악 파일이 있으면 그걸로 교체
+  async tryCustomBgm() {
+    for (const url of CUSTOM_BGM) {
+      try {
+        const r = await fetch(url, { method: 'HEAD' });
+        if (!r.ok) continue;
+        const el = new window.Audio(url);
+        el.loop = true;
+        el.volume = 0.45;
+        this.custom = el;
+        this.song.setEnabled(false);
+        if (this.music && this.enabled) el.play().catch(() => {});
+        return;
+      } catch { /* 없으면 새로 만든 곡 사용 */ }
+    }
+  }
+
+  setMusic(v) {
+    this.music = v;
+    if (this.custom) { if (v && this.enabled) this.custom.play().catch(() => {}); else this.custom.pause(); }
+    else if (this.song) this.song.setEnabled(v);
   }
 
   setEnabled(v) {
     this.enabled = v;
     if (this.master) this.master.gain.value = v ? 0.6 : 0;
+    if (this.custom) { if (v && this.music) this.custom.play().catch(() => {}); else this.custom.pause(); }
   }
 
   tone(freq, dur, { type = 'sine', vol = 0.3, slide = 0, attack = 0.005, dest } = {}) {
@@ -100,30 +131,10 @@ export class Audio {
     }
   }
 
-  // 통나무 북 + 우쿨렐레 느낌의 5음계 배경 음악
-  update(dt, { sailing = false, storm = 0, night = 0 } = {}) {
+  update(dt, { sailing = false, storm = 0, mood = 'village' } = {}) {
     if (!this.ctx || !this.enabled) return;
     this.lfoT += dt;
     this.oceanGain.gain.value = 0.18 + Math.sin(this.lfoT * 0.4) * 0.07 + (sailing ? 0.1 : 0) + storm * 0.3;
-    if (!this.music) return;
-    this.musicT -= dt;
-    if (this.musicT > 0) return;
-    const beat = 0.32;
-    this.musicT += beat;
-    const s = this.step++;
-    const bar = Math.floor(s / 8) % 4;
-    const b = s % 8;
-    // 북
-    if (b === 0 || b === 3 || b === 6) this.tone(b === 0 ? 98 : 130, 0.25, { slide: -40, vol: 0.35, dest: this.bgm });
-    if (b === 2 || b === 5 || b === 7) this.noise(0.05, { freq: 3000, vol: 0.06, type: 'highpass', dest: this.bgm });
-    // 멜로디 (5음계)
-    const scale = [392, 440, 523, 587, 659, 784, 880];
-    const pattern = [[0, 2, 4, 2, 3, 1, 2, -1], [4, 5, 4, 2, 3, 2, 1, -1], [2, 4, 5, 6, 5, 4, 2, 3], [4, 2, 1, 0, 1, 2, 0, -1]][bar];
-    const n = pattern[b];
-    if (n >= 0 && (s % 2 === 0 || n > 3)) {
-      const f = scale[n] * (night > 0.5 ? 0.5 : 1);
-      this.tone(f, 0.45, { type: 'triangle', vol: 0.09, dest: this.bgm });
-      this.tone(f * 2, 0.2, { type: 'sine', vol: 0.03, dest: this.bgm });
-    }
+    if (this.song) this.song.setMood(mood);
   }
 }
