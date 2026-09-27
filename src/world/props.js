@@ -1,6 +1,6 @@
 // 소품: 야자수, 오두막(팔레), 바위, 덤불, 꽃
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/addons/BufferGeometryUtils.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { thatchTexture, woodTexture } from '../textures.js';
 import { mat, part } from '../entities/models.js';
 

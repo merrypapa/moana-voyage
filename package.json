@@ -6,10 +6,17 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "compress-models": "node tools/compress-models.mjs"
   },
   "engines": {
     "node": ">=18"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@gltf-transform/core": "^4.5.0",
+    "@gltf-transform/extensions": "^4.5.0",
+    "@gltf-transform/functions": "^4.5.0",
+    "sharp": "^0.34.0"
+  }
 }

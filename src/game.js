@@ -25,6 +25,7 @@ import { HUD } from './ui/hud.js';
 import { Dialog } from './ui/dialog.js';
 import { WorldMap } from './ui/map.js';
 import { palmGeometry } from './world/props.js';
+import { loadCharacterModels, attachGLB, MODEL_FILES } from './entities/glbModels.js';
 import { clamp, smoothstep, josa } from './util.js';
 
 const SAVE_KEY = 'moana-voyage-save-v1';
@@ -201,6 +202,25 @@ export class Game {
   }
 
   addInteractable(it) { this.interactables.push(it); return it; }
+
+  // ---------- 캐릭터 GLB 모델 ----------
+  async loadModels(onEach) {
+    const models = await loadCharacterModels(onEach);
+    const mo = this.moana.model, mu = this.maui.model, hh = this.heihei.model;
+    if (models.moana) {
+      // 올린 모델이 이미 노를 들고 있으므로 게임의 노는 숨긴다
+      attachGLB(mo, models.moana, { height: MODEL_FILES.moana.height, keep: [mo.heart] });
+      const b = mo.glbBox;
+      // 초록 심장은 가슴 앞에
+      mo.heart.position.set(0, b.max.y * 0.66, b.max.z * 0.55);
+      mo.heart.scale.setScalar(1.6);
+    }
+    // 마우이 모델도 갈고리를 들고 있어서 게임의 갈고리는 숨긴다
+    if (models.maui) attachGLB(mu, models.maui, { height: MODEL_FILES.maui.height });
+    if (models.heihei) attachGLB(hh, models.heihei, { height: MODEL_FILES.heihei.height });
+    this.glbLoaded = Object.keys(models);
+    return this.glbLoaded;
+  }
 
   // ---------- 캐릭터 ----------
   get leader() { return this._leader || this.moana; }

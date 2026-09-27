@@ -1,6 +1,6 @@
 // 드로우콜 줄이기: 같은 재질의 정적인 메시들을 하나로 합친다
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/addons/BufferGeometryUtils.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 function normalize(geo, m, matrix) {
   let g = geo.index ? geo.toNonIndexed() : geo.clone();

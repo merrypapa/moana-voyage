@@ -371,6 +371,20 @@ export function animateHumanoid(p, a, dt) {
     armRz = 0.2;
   }
   const L = 1 - Math.exp(-14 * dt);
+  if (p.glb) {
+    // 뼈대 없는 GLB: 몸 전체를 뒤뚱거리며 통통 튀게
+    const moving = state === 'ground' || state === 'carry' ? s : 0;
+    const run = Math.min(1, Math.max(0, (speed - 6) / 3));
+    const wz = Math.sin(ph) * (0.07 + 0.05 * run) * moving;
+    p.glb.rotation.z += (wz - p.glb.rotation.z) * L;
+    p.glb.position.y = Math.abs(Math.sin(ph)) * (0.05 + 0.05 * run) * moving * p.H * 0.6;
+    const climbWob = state === 'climb' ? Math.sin(t * 8) * 0.08 * (a.climbMoving ? 1 : 0.2) : 0;
+    p.glb.rotation.y += (climbWob - p.glb.rotation.y) * L;
+    if (state === 'dance') p.glb.rotation.y = Math.sin(t * 2) * 0.4;
+    // 공격(노/갈고리): 몸 전체로 앞으로 내지르기
+    const lunge = a.swing > 0 ? Math.sin((1 - a.swing) * Math.PI) * 0.45 : 0;
+    p.glb.rotation.x += (lunge - p.glb.rotation.x) * Math.min(1, L * 2);
+  }
   p.legL.rotation.x += (legL - p.legL.rotation.x) * L;
   p.legR.rotation.x += (legR - p.legR.rotation.x) * L;
   p.armL.rotation.x += (armL - p.armL.rotation.x) * L;
@@ -399,6 +413,11 @@ export function animateHeihei(p, a) {
   else if (state === 'carried' || state === 'rescue') { p.head.rotation.x = Math.sin(t * 20) * 0.3; p.legL.rotation.x = Math.sin(t * 25); p.legR.rotation.x = -Math.sin(t * 25); }
   else p.head.rotation.x = Math.sin(t * 3) * 0.15;
   p.body.rotation.z = state === 'wobble' ? Math.sin(t * 6) * 0.2 : 0;
+  if (p.glb) {
+    p.glb.rotation.z = Math.sin(ph) * 0.14 * s;
+    p.glb.position.y = Math.abs(Math.sin(ph)) * 0.04 * s;
+    p.glb.rotation.x = state === 'peck' ? Math.max(0, Math.sin(t * 9)) * 0.45 : state === 'carried' || state === 'rescue' ? Math.sin(t * 20) * 0.15 : 0;
+  }
 }
 
 export function animatePua(p, a) {

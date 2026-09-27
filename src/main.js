@@ -46,6 +46,11 @@ async function boot() {
     requestAnimationFrame(titleLoop);
   };
   titleLoop();
+  // 캐릭터 3D 모델(GLB) 불러오기
+  $('btnNew').disabled = true;
+  $('loading').textContent = '캐릭터를 불러오는 중… 🌺';
+  try { await game.loadModels(); } catch (e) { console.warn(e); }
+  $('btnNew').disabled = false;
   $('loading').textContent = '';
   if (Game.hasSave()) $('btnContinue').classList.remove('hidden');
 

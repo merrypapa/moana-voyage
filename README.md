@@ -62,7 +62,10 @@ npm start
 ```
 index.html, style.css      화면과 HUD
 server.js                  정적 서버 (나중에 2인 플레이 중계 추가 예정)
-vendor/                    Three.js (오프라인 동작을 위해 포함)
+vendor/                    Three.js와 GLB 로더 (오프라인 동작을 위해 포함)
+assets/models/             게임이 쓰는 캐릭터 3D 모델 (모아나, 마우이, 헤이헤이 · 압축본)
+assets/source/             처음 올린 원본 모델 (배포에는 포함 안 됨)
+tools/compress-models.mjs  원본 모델 압축 스크립트 (npm run compress-models)
 src/
   main.js, game.js         시작점, 게임 본체(루프·상호작용·AI·저장)
   config.js                섬 위치와 지형 정의
@@ -73,6 +76,10 @@ src/
 docs/GAME_DESIGN.md        기획서
 ```
 
+## 캐릭터 3D 모델 바꾸기
+
+`assets/README.md`를 보세요. 원본을 `assets/source/`에 넣고 `npm install && npm run compress-models`를 실행하면 됩니다.
+
 ## 저작권
 
-개인·비상업용 팬 게임입니다. 모든 3D 모델, 텍스처, 소리, 음악, 대사는 코드로 새로 만들었고 영화의 실제 이미지·영상·노래 가사는 포함하지 않습니다. 모아나 관련 인물과 세계관의 권리는 원저작권자에게 있습니다.
+개인·비상업용 팬 게임입니다. 캐릭터 GLB 모델(Meshy AI로 생성)을 제외한 3D 모델, 텍스처, 소리, 음악, 대사는 코드로 새로 만들었고 영화의 실제 이미지·영상·노래 가사는 포함하지 않습니다. 모아나 관련 인물과 세계관의 권리는 원저작권자에게 있습니다.
