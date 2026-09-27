@@ -63,5 +63,11 @@ export class CameraRig {
     }
     this.camera.position.copy(pos);
     this.camera.lookAt(this.smoothTarget);
+    // 달릴 때는 화면이 살짝 넓어져 속도감이 난다
+    const fov = c.running ? 67 : 60;
+    if (Math.abs(this.camera.fov - fov) > 0.05) {
+      this.camera.fov = damp(this.camera.fov, fov, 4, dt);
+      this.camera.updateProjectionMatrix();
+    }
   }
 }

@@ -6,7 +6,7 @@ const $ = (id) => document.getElementById(id);
 const HELP = `
 <table>
 <tr><td>이동</td><td>WASD / 방향키 · 아이패드: 왼쪽 조이스틱</td></tr>
-<tr><td>달리기</td><td>Shift · 조이스틱 끝까지</td></tr>
+<tr><td>달리기</td><td>Shift 누르고 있기 · [🏃 달리기] 버튼(누르면 켜짐/꺼짐) · 조이스틱 끝까지 밀기</td></tr>
 <tr><td>점프</td><td>Space · [점프]</td></tr>
 <tr><td>상호작용</td><td>E · [상호작용] — 대화, 키 잡기, 돛대 오르기, 헤이헤이 안기/상자에 넣기, 배 타기/내리기</td></tr>
 <tr><td>행동</td><td>F · [행동] — 모아나: 코코넛 던지기/노 휘두르기 · 마우이: 갈고리 내려치기</td></tr>

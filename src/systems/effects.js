@@ -14,6 +14,7 @@ export class Effects {
       spark: new THREE.MeshBasicMaterial({ color: '#7dffcf', transparent: true }),
       gold: new THREE.MeshBasicMaterial({ color: '#ffd76e', transparent: true }),
       leaf: new THREE.MeshBasicMaterial({ color: '#5fd35a', transparent: true }),
+      dust: new THREE.MeshBasicMaterial({ color: '#e8d8b0', transparent: true }),
     };
     this.shake = 0;
     this.flashEl = document.getElementById('fade');

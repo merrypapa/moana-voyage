@@ -65,6 +65,7 @@ export class Character extends Body {
     if (cmd.transform && this.kind === 'maui') this.toggleHawk();
     if (cmd.action && this.state !== 'rescue' && this.state !== 'frozen') this.doAction();
 
+    this.running = false;
     switch (this.state) {
       case 'ground': case 'air': case 'sit': this.move(dt, cmd); break;
       case 'climb': this.updateClimb(dt, cmd); break;
@@ -77,7 +78,7 @@ export class Character extends Body {
   }
 
   moveSpeed(cmd) {
-    let s = cmd.run ? (this.kind === 'maui' ? 9.5 : 8.5) : this.kind === 'maui' ? 5.5 : 5;
+    let s = cmd.run ? (this.kind === 'maui' ? 11 : 10) : this.kind === 'maui' ? 5.5 : 5;
     if (this.hunger <= 0) s *= 0.6;
     if (this.carrying) s *= 0.8;
     return s;
@@ -95,7 +96,17 @@ export class Character extends Body {
       this.game.audio.play('jump');
     }
     if (this.state !== 'sit') this.state = this.grounded ? 'ground' : 'air';
-    this.speedNow = Math.hypot(this.vel.x, this.vel.z) - (this.onBoat ? 0 : 0);
+    this.speedNow = Math.hypot(this.vel.x, this.vel.z);
+    this.running = cmd.run && this.speedNow > 6.5;
+    // 달릴 때 발밑 먼지(모래)
+    if (this.running && this.grounded) {
+      this.dustT = (this.dustT || 0) - dt;
+      if (this.dustT <= 0) {
+        this.dustT = 0.12;
+        const p = this.worldPos(new THREE.Vector3());
+        this.game.effects.emit('dust', p.setY(p.y + 0.1), 2, { speed: 1.2, up: 1.5, size: 0.15, life: 0.5, gravity: 2 });
+      }
+    }
     if (this.inWater) this.enterWater();
   }
 
@@ -115,10 +126,12 @@ export class Character extends Body {
   updateSwim(dt, cmd) {
     this.swimTime += dt;
     const w = this.wishDir(cmd);
-    this.pos.x += w.x * 4.2 * dt;
-    this.pos.z += w.z * 4.2 * dt;
+    const swim = cmd.run ? 6.5 : 4.2;
+    this.pos.x += w.x * swim * dt;
+    this.pos.z += w.z * swim * dt;
+    this.running = cmd.run && w.mag > 0.1;
     if (w.mag > 0.1) this.faceToward(w.x, w.z, dt, 8);
-    this.speedNow = w.mag * 4;
+    this.speedNow = w.mag * swim;
     const surf = this.surfaceLevel(this.pos.x, this.pos.z);
     this.pos.y = damp(this.pos.y, surf - 1.1, 8, dt);
     const gh = heightAt(this.pos.x, this.pos.z);
@@ -264,6 +277,7 @@ export class Character extends Body {
     if (w.mag > 0.1) this.faceToward(this.vel.x, this.vel.z, dt, 4);
     this.speedNow = Math.hypot(this.vel.x, this.vel.z);
     this.flapping = cmd.jumpHeld || w.mag > 0.1;
+    this.running = cmd.run && w.mag > 0.1;
   }
 
   // 행동 버튼: 모아나=코코넛 던지기/노 휘두르기, 마우이=갈고리 내려치기

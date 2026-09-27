@@ -352,12 +352,14 @@ export function animateHumanoid(p, a, dt) {
   } else if (state === 'sit') {
     legL = -1.5; legR = -1.5; bob = -p.H * 0.24; armL = -0.4; armR = -0.4;
   } else {
-    legL = Math.sin(ph) * 0.7 * s;
+    const run = Math.min(1, Math.max(0, (speed - 6) / 3)); // 0=걷기, 1=달리기
+    legL = Math.sin(ph) * (0.7 + 0.35 * run) * s;
     legR = -legL;
-    armL = -Math.sin(ph) * 0.6 * s;
-    armR = -armL;
-    bob = Math.abs(Math.cos(ph)) * 0.05 * s * p.H;
-    lean = 0.08 * s;
+    armL = -Math.sin(ph) * (0.6 + 0.5 * run) * s - 0.5 * run;
+    armR = Math.sin(ph) * (0.6 + 0.5 * run) * s - 0.5 * run;
+    armLz = -0.12 - 0.15 * run; armRz = 0.12 + 0.15 * run;
+    bob = Math.abs(Math.cos(ph)) * (0.05 + 0.04 * run) * s * p.H;
+    lean = 0.08 * s + 0.22 * run;
     if (s < 0.05) {
       armL = Math.sin(t * 1.5) * 0.04; armR = -armL; headX = Math.sin(t * 0.7) * 0.05;
     }

@@ -800,7 +800,7 @@ export class Game {
     // 배고픔
     for (const c of this.characters) {
       const before = c.hunger;
-      c.hunger = Math.max(0, c.hunger - dt * (c.state === 'helm' || c.state === 'climb' || c.form === 'hawk' ? 0.3 : 0.2));
+      c.hunger = Math.max(0, c.hunger - dt * (c.running ? 0.35 : c.state === 'helm' || c.state === 'climb' || c.form === 'hawk' ? 0.3 : 0.2));
       if (c === L && before > 20 && c.hunger <= 20) this.hud.toast(`${josa(c.name, '이', '가')} 배고파요! 🍽️ (R / 먹기 버튼)`);
     }
 

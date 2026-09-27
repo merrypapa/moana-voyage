@@ -99,7 +99,7 @@ button.icon { width: 48px; height: 48px; padding: 0; font-size: 1.4rem; border-r
   background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.35); }
 #joyKnob { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%;
   background: rgba(255,255,255,0.45); }
-#touchButtons { position: absolute; right: max(24px, env(safe-area-inset-right)); bottom: 30px; width: 250px; height: 220px; }
+#touchButtons { position: absolute; right: max(24px, env(safe-area-inset-right)); bottom: 30px; width: 260px; height: 270px; }
 .tb { position: absolute; width: 76px; height: 76px; border-radius: 50%; padding: 0; font-size: 0.95rem; font-weight: bold;
   background: rgba(10,40,60,0.55); line-height: 1.1; }
 .tb.pressed { background: rgba(255,215,110,0.6); }
@@ -109,6 +109,9 @@ button.icon { width: 48px; height: 48px; padding: 0; font-size: 1.4rem; border-r
 .tb-transform { right: 90px; bottom: 90px; background: rgba(160,110,40,0.7); }
 .tb-down { right: 180px; bottom: 90px; }
 .tb-eat { right: 180px; bottom: 0; width: 60px; height: 60px; font-size: 0.85rem; }
+.tb-run { right: 6px; bottom: 186px; width: 70px; height: 70px; font-size: 0.8rem; background: rgba(40,120,200,0.55); }
+.tb-run.on { background: rgba(255,170,40,0.85); border-color: #fff; box-shadow: 0 0 14px rgba(255,200,80,0.9); }
+#who .running { display: inline-block; margin-left: 6px; animation: pulse 0.6s infinite; }
 
 #fade { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 60; transition: opacity 0.8s; }
 #bigText { position: fixed; left: 0; right: 0; top: 36%; text-align: center; z-index: 61; pointer-events: none;

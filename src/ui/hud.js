@@ -49,7 +49,7 @@ export class HUD {
   update() {
     const g = this.game;
     const c = g.leader;
-    this.set('who', this.el.who, `${c.kind === 'moana' ? '🌺' : '🪝'} ${c.name}${c.form === 'hawk' ? ' (매)' : ''}`);
+    this.set('who', this.el.who, `${c.kind === 'moana' ? '🌺' : '🪝'} ${c.name}${c.form === 'hawk' ? ' (매)' : ''}${c.running ? '<span class="running">🏃 달리는 중</span>' : ''}`, 'innerHTML');
     this.set('hearts', this.el.hearts, '❤️'.repeat(c.hp) + '🤍'.repeat(Math.max(0, c.maxHp - c.hp)));
     this.set('hunger', this.el.hunger, `${Math.round(c.hunger)}%`, 'title');
     this.el.hunger.style.width = `${c.hunger}%`;

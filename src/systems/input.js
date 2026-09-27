@@ -23,6 +23,7 @@ export class Input {
     this.camDX = 0; this.camDY = 0; this.zoom = 0;
     this.joy = { x: 0, y: 0, id: null, cx: 0, cy: 0 };
     this.touchUsed = false;
+    this.runToggle = false; // 아이패드 [달리기] 버튼: 누르면 켜지고 다시 누르면 꺼짐
     this.onFirstTouch = null;
     this.enabled = true;
 
@@ -130,7 +131,18 @@ export class Input {
 
   _setupButtons() {
     const map = { jump: 'jump', interact: 'interact', action: 'action', transform: 'transform', down: 'descend', eat: 'eat' };
+    const runBtn = document.querySelector('.tb-run');
+    const toggleRun = (e) => {
+      this._firstTouch();
+      this.runToggle = !this.runToggle;
+      runBtn.classList.toggle('on', this.runToggle);
+      if (e) e.preventDefault();
+    };
+    runBtn.addEventListener('touchstart', toggleRun, { passive: false });
+    runBtn.addEventListener('mousedown', () => toggleRun());
+    this.setRunToggle = (v) => { this.runToggle = v; runBtn.classList.toggle('on', v); };
     for (const btn of document.querySelectorAll('#touchButtons .tb')) {
+      if (btn.dataset.act === 'run') continue;
       const k = map[btn.dataset.act];
       btn.addEventListener('touchstart', (e) => {
         this._firstTouch();
@@ -157,7 +169,7 @@ export class Input {
     const L = Math.hypot(x, y);
     if (L > 1) { x /= L; y /= L; }
     c.moveX = x; c.moveY = y;
-    c.run = this.held.has('run') || (this.joy.id !== null && L > 0.92);
+    c.run = L > 0.1 && (this.held.has('run') || this.runToggle || (this.joy.id !== null && L > 0.92));
     c.jumpHeld = this.held.has('jump');
     c.downHeld = this.held.has('descend');
     c.jump = this.pressed.has('jump');
