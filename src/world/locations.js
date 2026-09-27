@@ -155,7 +155,7 @@ export class Manta {
     if (target) dist = Math.hypot(target.x - b.x, target.z - b.z);
     const want = show && dist > 120 ? 1 : 0;
     this.alpha += (want - this.alpha) * Math.min(1, dt * 1.5);
-    this.mesh.visible = this.alpha > 0.02;
+    this.mesh.visible = this.alpha > 0.02 && !!target;
     if (!this.mesh.visible) return;
     const dx = target.x - b.x, dz = target.z - b.z;
     const L = Math.hypot(dx, dz) || 1;
