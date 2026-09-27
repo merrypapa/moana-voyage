@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0b4f7c" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <title>모아나의 항해</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
+  </script>
+</head>
+<body>
+  <div id="game"></div>
+
+  <!-- 타이틀 화면 -->
+  <div id="title" class="screen">
+    <div class="title-card">
+      <div class="title-heart"></div>
+      <h1>모아나의 항해</h1>
+      <p class="subtitle">테 피티의 심장을 돌려주는 여행</p>
+      <div class="title-buttons">
+        <button id="btnContinue" class="big hidden">이어하기</button>
+        <button id="btnNew" class="big">새로 시작</button>
+        <button id="btnHelp">조작법</button>
+      </div>
+      <p class="fine">비상업용 팬 게임 · 아이패드 / 컴퓨터</p>
+      <p id="loading" class="fine">바다를 준비하는 중…</p>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="status">
+      <div id="who"></div>
+      <div id="hearts"></div>
+      <div class="bar"><span>🍽️</span><div class="bar-bg"><div id="hunger" class="bar-fill"></div></div></div>
+      <div id="inventory"></div>
+    </div>
+    <div id="objective">
+      <div id="objTitle"></div>
+      <div id="objText"></div>
+      <div id="objDist"></div>
+    </div>
+    <div id="topRight">
+      <div id="wind" title="바람">🌬️ <span id="windArrow">➤</span></div>
+      <button id="btnSwitch" class="icon" title="캐릭터 전환 (Tab)">🔄</button>
+      <button id="btnMap" class="icon" title="지도 (M)">🗺️</button>
+      <button id="btnSound" class="icon" title="소리">🔊</button>
+      <button id="btnMenu" class="icon" title="메뉴 (Esc)">☰</button>
+    </div>
+    <div id="compass"><div id="compassArrow">▲</div></div>
+    <div id="prompt" class="hidden"></div>
+    <div id="toast"></div>
+
+    <!-- 터치 조작 -->
+    <div id="touch" class="hidden">
+      <div id="joy"><div id="joyKnob"></div></div>
+      <div id="touchButtons">
+        <button data-act="jump" class="tb tb-jump">점프</button>
+        <button data-act="interact" class="tb tb-interact">상호<br/>작용</button>
+        <button data-act="action" class="tb tb-action">행동</button>
+        <button data-act="transform" class="tb tb-transform hidden">변신</button>
+        <button data-act="down" class="tb tb-down hidden">내려<br/>가기</button>
+        <button data-act="eat" class="tb tb-eat">먹기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 대화창 -->
+  <div id="dialog" class="hidden">
+    <div id="dlgName"></div>
+    <div id="dlgText"></div>
+    <div id="dlgNext">▼ 터치 / Enter</div>
+  </div>
+
+  <!-- 지도 -->
+  <div id="mapOverlay" class="hidden">
+    <div class="map-frame">
+      <canvas id="mapCanvas" width="900" height="900"></canvas>
+      <div class="map-legend">
+        <span>⛵ 배</span><span class="lg-moana">● 모아나</span><span class="lg-maui">● 마우이</span><span>⭐ 목표</span>
+      </div>
+      <button id="btnMapClose" class="big">닫기</button>
+    </div>
+  </div>
+
+  <!-- 메뉴 / 조작법 -->
+  <div id="menu" class="screen hidden">
+    <div class="panel">
+      <h2>메뉴</h2>
+      <div id="helpText"></div>
+      <label class="opt"><input type="checkbox" id="optShadows" checked /> 그림자 (끄면 더 부드러워요)</label>
+      <label class="opt"><input type="checkbox" id="optMusic" checked /> 배경 음악</label>
+      <div class="title-buttons">
+        <button id="btnResume" class="big">계속하기</button>
+        <button id="btnRestart">처음부터 다시</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="fade"></div>
+  <div id="bigText"></div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

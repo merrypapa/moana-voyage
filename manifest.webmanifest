@@ -1,0 +1,10 @@
+{
+  "name": "모아나의 항해",
+  "short_name": "모아나",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0b4f7c",
+  "theme_color": "#0b4f7c",
+  "icons": [{ "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

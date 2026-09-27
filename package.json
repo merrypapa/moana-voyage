@@ -1,0 +1,15 @@
+{
+  "name": "moana-voyage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "모아나 팬 게임 - 테 피티의 심장을 돌려주는 항해 (비상업용)",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}
