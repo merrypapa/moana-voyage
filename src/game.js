@@ -126,6 +126,17 @@ export class Game {
       action: () => this.talkMaui(),
     });
 
+    // 목표 방향을 가리키는 3D 화살표 (캐릭터 발밑)
+    const sh = new THREE.Shape();
+    sh.moveTo(0, 1.1); sh.lineTo(0.75, 0.15); sh.lineTo(0.26, 0.15); sh.lineTo(0.26, -0.95);
+    sh.lineTo(-0.26, -0.95); sh.lineTo(-0.26, 0.15); sh.lineTo(-0.75, 0.15); sh.closePath();
+    const ag = new THREE.ExtrudeGeometry(sh, { depth: 0.12, bevelEnabled: false });
+    ag.rotateX(Math.PI / 2); // 화살촉이 +z 방향
+    this.guideArrow = new THREE.Mesh(ag, new THREE.MeshBasicMaterial({ color: '#ffc21a', transparent: true, opacity: 0.95, depthWrite: false }));
+    this.guideArrow.renderOrder = 5;
+    this.guideArrow.visible = false;
+    this.scene.add(this.guideArrow);
+
     this.setupUIButtons();
     this.events.on('boatBump', (e) => {
       this.audio.play('bonk');
@@ -818,6 +829,7 @@ export class Game {
       } else s.visible = this.zone === 'surface' && d < 90;
     }
 
+    this.updateGuideArrow();
     this.camRig.update(dt, this, input);
     if (this.zone === 'surface') {
       this.sky.update(this.timeOfDay, this.camera.position, this.scene.fog, this.ocean, this.stormAmount);
@@ -832,6 +844,26 @@ export class Game {
 
     this.saveTimer += dt;
     if (this.saveTimer > 15) { this.saveTimer = 0; this.save(); }
+  }
+
+  updateGuideArrow() {
+    const a = this.guideArrow;
+    const L = this.leader;
+    const tgt = this.quests.target();
+    const p = L.worldPos(new THREE.Vector3());
+    let show = !!tgt && !this.dialog.active && !this.map.open && L.state !== 'rescue' && L.state !== 'climb';
+    if (show && (tgt.x > 7000) !== (this.zone === 'lalotai')) show = false;
+    let dx = 0, dz = 0, d = 0;
+    if (show) { dx = tgt.x - p.x; dz = tgt.z - p.z; d = Math.hypot(dx, dz); if (d < 10) show = false; }
+    a.visible = show;
+    if (!show) return;
+    dx /= d; dz /= d;
+    const sailing = L.state === 'helm' || (L.onBoat && this.boat.speed > 3);
+    const ahead = sailing ? 9 : L.form === 'hawk' ? 4 : 2.3;
+    const pulse = 1 + Math.sin(this.time * 5) * 0.08;
+    a.scale.setScalar((sailing ? 2.2 : L.form === 'hawk' ? 1.4 : 0.9) * pulse);
+    a.position.set(p.x + dx * ahead, p.y + (sailing ? 1.2 : 0.25) + Math.sin(this.time * 3) * 0.08, p.z + dz * ahead);
+    a.rotation.set(0, Math.atan2(dx, dz), 0);
   }
 
   // 디버그/테스트용

@@ -57,10 +57,11 @@ button.icon { width: 48px; height: 48px; padding: 0; font-size: 1.4rem; border-r
 #objDist { font-size: 0.85rem; opacity: 0.8; }
 #topRight { position: absolute; right: max(12px, env(safe-area-inset-right)); top: 12px; display: flex; gap: 8px; align-items: center; }
 #wind { background: var(--panel); border-radius: 24px; padding: 10px 14px; font-size: 1.1rem; }
-#windArrow { display: inline-block; transition: transform .5s; }
-#compass { position: absolute; left: 50%; top: 98px; transform: translateX(-50%); width: 44px; height: 44px;
+#wind { display: flex; align-items: center; gap: 6px; }
+#windArrow { display: inline-block; width: 22px; height: 22px; transition: transform .5s; }
+#compass { position: absolute; left: 50%; top: 96px; transform: translateX(-50%); width: 56px; height: 56px;
   border-radius: 50%; background: var(--panel); display: flex; align-items: center; justify-content: center; }
-#compassArrow { color: #ffd76e; font-size: 1.3rem; }
+#compassArrow { width: 38px; height: 38px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
 #prompt { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); background: rgba(0,0,0,0.6);
   padding: 10px 20px; border-radius: 30px; font-size: 1.05rem; white-space: nowrap; }
 #toast { position: absolute; left: 50%; top: 150px; transform: translateX(-50%); text-align: center; }

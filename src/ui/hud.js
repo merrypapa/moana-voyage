@@ -75,7 +75,7 @@ export class HUD {
       this.el.compass.style.display = 'none';
     }
     // 바람
-    this.el.windArrow.style.transform = `rotate(${-(g.wind.yaw - g.camRig.yaw) - Math.PI / 2}rad)`;
+    this.el.windArrow.style.transform = `rotate(${-(g.wind.yaw - g.camRig.yaw)}rad)`;
 
     // 터치 버튼 상태
     const isMaui = c.kind === 'maui';
