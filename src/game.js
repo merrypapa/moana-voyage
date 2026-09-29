@@ -7,7 +7,8 @@ import { Sky } from './world/sky.js';
 import { buildWorld, restoreBlight, updateReefFoam } from './world/world.js';
 import { Village, PLAZA } from './world/motunui.js';
 import { Locations, Manta } from './world/locations.js';
-import { Boat, HELM, MAST, BOX, DECK } from './entities/boat.js';
+import { Boat, HELM, MAST, BOX, DECK, TBOX } from './entities/boat.js';
+import { TurtleHerd, Turtle } from './entities/turtles.js';
 import { Character } from './entities/character.js';
 import { Critter } from './entities/critters.js';
 import { OceanRescue } from './entities/oceanHand.js';
@@ -107,6 +108,8 @@ export class Game {
     this.rescue = new OceanRescue(this);
 
     this.village = new Village(this);
+    this.herd = new TurtleHerd(this, 100);
+    this.turtles = [];
     this.locations = new Locations(this);
     this.manta = new Manta(this);
     this.kakamora = new Kakamora(this);
@@ -135,6 +138,7 @@ export class Game {
     ag.rotateX(Math.PI / 2); // 화살촉이 +z 방향
     this.guideArrow = new THREE.Mesh(ag, new THREE.MeshBasicMaterial({ color: '#ffc21a', transparent: true, opacity: 0.95, depthWrite: false }));
     this.guideArrow.renderOrder = 5;
+    this.guideArrow.rotation.order = 'YXZ';
     this.guideArrow.visible = false;
     this.scene.add(this.guideArrow);
 
@@ -145,7 +149,7 @@ export class Game {
     });
     this.events.on('transform', (e) => { if (e.form === 'hawk' && this.quests.is('shapeshift')) this.flags.hawkTried = true; });
     this.events.on('takeHelm', () => {
-      if (!this.flags.helmTutorial) { this.flags.helmTutorial = true; this.hud.toast('앞 = 돛 올리기 / 뒤 = 내리기 / 좌우 = 방향. 바람을 등지면 빨라요!'); }
+      if (!this.flags.helmTutorial) { this.flags.helmTutorial = true; this.hud.toast('앞 = 돛 올리기 / 뒤 = 내리기 / 좌우 = 방향. H 또는 ⛵ 버튼으로 키를 놓아요'); }
     });
   }
 
@@ -342,13 +346,15 @@ export class Game {
       if (cr.kind === 'heihei' && c.onBoat && Math.hypot(c.pos.x - BOX.x, c.pos.z - BOX.z) < 2) {
         return { label: '📦 헤이헤이를 상자에 넣기', action: () => { c.carrying = null; cr.enterBox(); this.hud.toast('헤이헤이가 상자 속에 쏙! 🐔📦'); } };
       }
+      if (cr.kind === 'turtle' && c.onBoat && Math.hypot(c.pos.x - TBOX.x, c.pos.z - TBOX.z) < 2.1) {
+        return { label: `🐢 ${cr.name}를 거북이 상자에 넣기`, action: () => { c.carrying = null; cr.enterBox(); this.hud.toast(`🐢 거북이 상자에 쏙! (${this.boat.tbox.list.length}마리)`); } };
+      }
       return { label: `${cr.name} 내려놓기`, action: () => c.dropCarried() };
     }
     if (c.form === 'hawk') return null;
     const cp = c.worldPos(new THREE.Vector3());
     if (c.onBoat) {
-      const dh = Math.hypot(c.pos.x - HELM.x, c.pos.z - HELM.z);
-      if (dh < 1.8) add(dh, '⛵ 키 잡기 (배 조종)', () => c.takeHelm(), 1);
+      // 키 잡기는 배 위 어디서든 전용 버튼(⛵ / H)으로 한다
       const dm = Math.hypot(c.pos.x - MAST.x, c.pos.z - MAST.z);
       if (dm < 1.4) add(dm, '🧗 돛대 오르기 (위 = 올라가기)', () => c.startClimb(this.climbables[0]), 1);
       const db = Math.hypot(c.pos.x - BOX.x, c.pos.z - BOX.z);
@@ -359,6 +365,12 @@ export class Game {
           this.hud.toast(b.box.target ? '상자가 비어 있어요. 헤이헤이를 안아서 넣을 수 있어요!' : '상자를 닫았어요.');
         });
       }
+      const dt2 = Math.hypot(c.pos.x - TBOX.x, c.pos.z - TBOX.z);
+      if (dt2 < 1.9) {
+        const tb = b.tbox;
+        if (tb.list.length) add(dt2, `🐢 거북이 상자에서 한 마리 꺼내기 (${tb.list.length}마리)`, () => tb.list[tb.list.length - 1].exitBox(), 1);
+        else add(dt2, '🐢 거북이 상자 (비어 있어요)', () => { tb.target = 1; tb.closeT = 1.2; this.hud.toast('거북이 섬에서 거북이를 안아 와서 넣어 보세요! 🐢'); });
+      }
       if (this.zone === 'surface') {
         const land = this.findLandingPoint();
         if (land) add(5, '🏝️ 섬에 내리기', () => this.rescue.start(c, { style: 'leap', to: land }));
@@ -367,11 +379,15 @@ export class Game {
       const bd = Math.hypot(cp.x - b.x, cp.z - b.z);
       if (bd < 26) add(bd * 0.3, '⛵ 배에 타기', () => this.rescue.start(c, { style: 'leap', to: 'boat' }));
     }
-    for (const cr of this.critters) {
-      if (['inBox', 'rescue', 'stolen', 'carried'].includes(cr.state)) continue;
+    if (!c.onBoat && this.zone === 'surface') {
+      const n = this.herd.nearest(cp, 1.9);
+      if (n) add(n.d, `🐢 ${n.t.baby ? '아기 거북이' : '거북이'} 안아 들기`, () => this.adoptTurtle(n.t, c), 1);
+    }
+    for (const cr of [...this.critters, ...this.turtles]) {
+      if (['inBox', 'rescue', 'stolen', 'carried', 'swim'].includes(cr.state)) continue;
       if (cr.onBoat !== c.onBoat) continue;
       const d = cr.onBoat ? cr.pos.distanceTo(c.pos) : cr.pos.distanceTo(cp);
-      if (d < 1.6) add(d, `${cr.kind === 'heihei' ? '🐔' : '🐷'} ${cr.name} 안아 들기`, () => c.pickUp(cr), 1);
+      if (d < 1.6) add(d, `${cr.kind === 'heihei' ? '🐔' : cr.kind === 'turtle' ? '🐢' : '🐷'} ${cr.name} 안아 들기`, () => c.pickUp(cr), 1);
     }
     if (!c.onBoat) {
       for (const n of Object.values(this.npcs)) {
@@ -392,6 +408,32 @@ export class Game {
     if (!opts.length) return null;
     opts.sort((a, b2) => (b2.priority - a.priority) || (a.dist - b2.dist));
     return opts[0];
+  }
+
+  // 섬의 거북이를 안아 들면 따라다니는 거북이가 된다
+  adoptTurtle(t, who) {
+    this.herd.take(t);
+    const tu = new Turtle(this, t.baby);
+    const y = t.swim ? 0 : heightAt(t.x, t.z);
+    tu.setWorld(new THREE.Vector3(t.x, y, t.z));
+    tu.home.set(t.homeX, 0, t.homeZ);
+    this.turtles.push(tu);
+    who.pickUp(tu);
+    if (!this.flags.turtleTip) {
+      this.flags.turtleTip = true;
+      this.hud.toast('🐢 배로 데려가서 거북이 상자(바다색 상자)에 넣어 보세요!');
+    }
+  }
+
+  // 배 위 어디서든 키 잡기 / 놓기
+  toggleHelm(c) {
+    if (!c.onBoat || !this.boat.unlocked || c.form === 'hawk') return;
+    if (['rescue', 'frozen'].includes(c.state)) return;
+    if (c.state === 'helm') { c.leaveHelm(); return; }
+    if (c.carrying) c.dropCarried();
+    if (c.state === 'climb') c.climb = null;
+    c.takeHelm();
+    this.audio.play('pickup');
   }
 
   eat(c) {
@@ -604,6 +646,15 @@ export class Game {
       }
     }
     if (q.is('teka') && Math.hypot(lp.x - TF.x, lp.z - TF.z) < 950) this.teka.awaken();
+    if (L.onBoat && b.unlocked && !this.flags.helmHint && !this.dialog.active) {
+      this.flags.helmHint = true;
+      this.dialog.show(LINES.sailTutorial);
+    }
+    const ti = this.herd.island;
+    if (!this.flags.turtleIsland && Math.hypot(lp.x - ti.x, lp.z - ti.z) < ti.radius + 60) {
+      this.flags.turtleIsland = true;
+      this.showBigText('거북이 섬', '아기 거북이와 어른 거북이 100마리가 살아요 🐢');
+    }
     if (q.is('homecoming') && Math.hypot(lp.x - this.npcs.tui.pos.x, lp.z - this.npcs.tui.pos.z) < 12 && !this.dialog.active && !this.flags.homecomingShown) {
       this.flags.homecomingShown = true;
       this.dialog.show(LINES.homecoming, () => this.finishChapter1());
@@ -667,6 +718,7 @@ export class Game {
       boat: { x: this.boat.x, z: this.boat.z, yaw: this.boat.yaw },
       player: this.zone === 'surface' ? { onBoat: L.onBoat, x: L.pos.x, y: L.pos.y, z: L.pos.z } : null,
       map: this.map.serialize(),
+      turtles: this.turtles.filter((t) => t.crew).map((t) => (t.baby ? 1 : 0)),
     };
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch { /* 저장 실패 무시 */ }
   }
@@ -685,6 +737,7 @@ export class Game {
     Object.assign(this.moana, d.moana); Object.assign(this.maui, d.maui);
     this.boat.setPose(d.boat.x, d.boat.z, d.boat.yaw);
     this.map.load(d.map);
+    this.savedTurtles = d.turtles || [];
     this.quests.index = clamp(d.stage, 0, STAGES.length - 1);
     // 랄로타이 안에서 저장됐다면 괴물의 섬 입구 단계로
     if (this.quests.is('tamatoa')) this.quests.index = this.quests.idx('lalotai');
@@ -721,6 +774,17 @@ export class Game {
     if (q.atLeast('findMaui') && this.boat.unlocked) h.placeOnBoat(new THREE.Vector3(-1, 0, -2));
     else { h.home.set(8, 0, 78); h.setWorld(new THREE.Vector3(8, heightAt(8, 78), 78)); }
     h.home.set(8, 0, 78);
+    // 배에 태웠던 거북이들은 거북이 상자 안에서 다시 시작
+    for (const baby of this.savedTurtles || []) {
+      if (!this.boat.unlocked) break;
+      const tu = new Turtle(this, !!baby);
+      this.turtles.push(tu);
+      tu.enterBox();
+    }
+    const nb = (this.savedTurtles || []).filter((x) => x).length;
+    this.herd.removeCount(nb, true);
+    this.herd.removeCount((this.savedTurtles || []).length - nb, false);
+    this.boat.tbox.target = 0; this.boat.tbox.closeT = 0; this.boat.tbox.open = 0;
     const p = this.pua;
     p.home.set(-36, 0, 62);
     p.setWorld(new THREE.Vector3(-36, heightAt(-36, 62), 62));
@@ -811,6 +875,8 @@ export class Game {
     this.boat.update(dt, this.time, this);
     for (const c of this.characters) c.update(dt);
     for (const c of this.critters) c.update(dt);
+    for (const tu of this.turtles) tu.update(dt);
+    this.herd.update(dt, this.time, this.camera.position);
     const lp = L.worldPos(new THREE.Vector3());
     const nearHome = this.zone === 'surface' && Math.hypot(this.camera.position.x, this.camera.position.z) < 900;
     this.village.group.visible = nearHome;
@@ -827,6 +893,7 @@ export class Game {
       if (Array.isArray(res)) this.dialog.show(res);
     }
     if (cmd.eat) this.eat(L);
+    if (cmd.helm && !blocked) this.toggleHelm(L);
 
     this.locations.update(dt, this.time);
     this.lalotai.update(dt, this.time);
@@ -890,12 +957,20 @@ export class Game {
     a.visible = show;
     if (!show) return;
     dx /= d; dz /= d;
-    const sailing = L.state === 'helm' || (L.onBoat && this.boat.speed > 3);
-    const ahead = sailing ? 9 : L.form === 'hawk' ? 4 : 2.3;
+    const sailing = L.onBoat;
     const pulse = 1 + Math.sin(this.time * 5) * 0.08;
-    a.scale.setScalar((sailing ? 2.2 : L.form === 'hawk' ? 1.4 : 0.9) * pulse);
-    a.position.set(p.x + dx * ahead, p.y + (sailing ? 1.2 : 0.25) + Math.sin(this.time * 3) * 0.08, p.z + dz * ahead);
-    a.rotation.set(0, Math.atan2(dx, dz), 0);
+    a.scale.setScalar((sailing ? 1.7 : L.form === 'hawk' ? 1.4 : 0.9) * pulse);
+    if (sailing) {
+      // 배 위에서는 돛대 꼭대기 위에 띄워 카메라와 돛에 가리지 않게
+      const b = this.boat;
+      const top = b.root.localToWorld(new THREE.Vector3(0, 10.6, 1.0));
+      a.position.set(top.x, top.y + Math.sin(this.time * 3) * 0.15, top.z);
+    } else {
+      const ahead = L.form === 'hawk' ? 4 : 2.3;
+      a.position.set(p.x + dx * ahead, p.y + 0.25 + Math.sin(this.time * 3) * 0.08, p.z + dz * ahead);
+    }
+    // 배 위에서는 비스듬히 세워 뒤에서도 방향이 잘 보이게
+    a.rotation.set(sailing ? -0.75 : 0, Math.atan2(dx, dz), 0);
   }
 
   // 디버그/테스트용

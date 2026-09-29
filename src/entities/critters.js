@@ -9,8 +9,8 @@ import { clamp } from '../util.js';
 const tmp = new THREE.Vector3();
 
 export class Critter extends Body {
-  constructor(game, kind) {
-    const model = kind === 'heihei' ? buildHeihei() : buildPua();
+  constructor(game, kind, prebuilt = null) {
+    const model = prebuilt || (kind === 'heihei' ? buildHeihei() : buildPua());
     super(game, model.root, { radius: 0.3, stepMax: 0.6 });
     this.kind = kind;
     this.name = kind === 'heihei' ? '헤이헤이' : '푸아';

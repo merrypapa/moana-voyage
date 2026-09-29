@@ -12,6 +12,8 @@ export const DECK = { halfW: 2.3, halfL: 5.4 };
 export const BOX = { x: 1.45, z: -3.0, half: 0.55, h: 1.1 };
 export const MAST = { x: 0, z: 1.0, height: 9.0, r: 0.3 };
 export const HELM = { x: 0, z: -4.7 };
+// 거북이 상자 (헤이헤이 상자 반대편, 바다색 상자 + 등껍질 뚜껑)
+export const TBOX = { x: -1.45, z: -1.2, halfX: 0.6, halfZ: 0.72, h: 0.85 };
 
 function canoeHull(length, width, height, segs = 16) {
   const g = new THREE.BoxGeometry(width, height, length, 4, 2, segs);
@@ -42,6 +44,7 @@ export class Boat {
     this.upgrade = 1;
     this.anchored = true;
     this.box = { open: 0, target: 0, heihei: false, wiggle: 0 };
+    this.tbox = { open: 0, target: 0, list: [], closeT: 0, wiggle: 0 };
     this.unlocked = false; // 동굴에서 배를 찾기 전에는 잠겨 있음
     this._build();
     scene.add(this.root);
@@ -148,6 +151,25 @@ export class Boat {
     part('box', mat('#e6d2a4'), 0.3, 0.05, 0.08, 0, 0.12, bw, this.lid);
     this.boxGroup.add(this.lid);
     this.root.add(this.boxGroup);
+    // 거북이 상자
+    this.tboxGroup = new THREE.Group();
+    this.tboxGroup.position.set(TBOX.x, 0, TBOX.z);
+    const sea = mat('#2a8fb0'), foam = mat('#f2f7f7');
+    const tw = TBOX.halfX * 2, td = TBOX.halfZ * 2, th = TBOX.h - 0.08;
+    part('box', sea, tw, th, td, 0, th / 2, 0, this.tboxGroup);
+    for (const y of [0.2, 0.45, 0.7]) part('box', foam, tw + 0.03, 0.05, td + 0.03, 0, y * th / 0.78, 0, this.tboxGroup);
+    for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) part('box', mat('#1d5f78'), 0.08, th + 0.02, 0.08, x * (tw / 2), th / 2, z * (td / 2), this.tboxGroup);
+    this.tlid = new THREE.Group();
+    this.tlid.position.set(0, th, -TBOX.halfZ);
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.62, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat('#557a3a'));
+    dome.scale.set(1, 0.42, 1.2);
+    dome.position.set(0, 0, TBOX.halfZ);
+    dome.castShadow = true;
+    this.tlid.add(dome);
+    for (const [x, z] of [[0, 0], [0.25, 0.22], [-0.25, 0.22], [0.25, -0.22], [-0.25, -0.22]]) part('sphere', mat('#3b5a28'), 0.14, 0.05, 0.14, x, 0.2, TBOX.halfZ + z, this.tlid);
+    this.tboxGroup.add(this.tlid);
+    this.root.add(this.tboxGroup);
+
     // 갑판 소품
     for (const [x, z] of [[-1.6, 4.3], [-1.2, 4.6], [-1.8, 4.7]]) part('sphere', mat('#5a3a1c'), 0.18, 0.2, 0.18, x, 0.18, z, this.root);
     const coil = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.07, 6, 14), rope);
@@ -165,6 +187,7 @@ export class Boat {
 
   deckHeight(lx, lz) {
     if (Math.abs(lx - BOX.x) < BOX.half && Math.abs(lz - BOX.z) < BOX.half) return BOX.h;
+    if (Math.abs(lx - TBOX.x) < TBOX.halfX && Math.abs(lz - TBOX.z) < TBOX.halfZ) return TBOX.h;
     return 0;
   }
   onDeck(lx, lz) { return Math.abs(lx) <= DECK.halfW && Math.abs(lz) <= DECK.halfL; }
@@ -267,6 +290,18 @@ export class Boat {
       if (b.wiggle > 0) lidA = -Math.abs(Math.sin(t * 30)) * 0.25;
     }
     this.lid.rotation.x = lidA;
+
+    // 거북이 상자 뚜껑: 넣고 뺄 때 열렸다 닫히고, 안에 거북이가 있으면 가끔 들썩
+    const tb = this.tbox;
+    if (tb.closeT > 0) { tb.closeT -= dt; if (tb.closeT <= 0) tb.target = 0; }
+    tb.open = approach(tb.open, tb.target, dt * 3);
+    let tA = -tb.open * 1.6;
+    if (tb.list.length && tb.target === 0) {
+      tb.wiggle -= dt;
+      if (tb.wiggle < -3 - Math.random() * 5) tb.wiggle = 0.6;
+      if (tb.wiggle > 0) tA = -Math.abs(Math.sin(t * 18)) * 0.18;
+    }
+    this.tlid.rotation.x = tA;
 
     // 물보라 자국
     this._foamTimer -= dt;

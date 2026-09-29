@@ -6,14 +6,14 @@ export function emptyCommand() {
   return {
     moveX: 0, moveY: 0, // 조이스틱 (오른쪽 +, 앞 +)
     run: false, jumpHeld: false, downHeld: false,
-    jump: false, interact: false, action: false, transform: false, eat: false,
+    jump: false, interact: false, action: false, transform: false, eat: false, helm: false,
   };
 }
 
 const KEYMAP = {
   KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right',
   Space: 'jump', ShiftLeft: 'run', ShiftRight: 'run', KeyE: 'interact', KeyF: 'action', KeyQ: 'transform', KeyR: 'eat',
-  KeyM: 'map', Tab: 'switch', Escape: 'menu', Enter: 'confirm', KeyC: 'descend', ControlLeft: 'descend',
+  KeyM: 'map', KeyH: 'helm', Tab: 'switch', Escape: 'menu', Enter: 'confirm', KeyC: 'descend', ControlLeft: 'descend',
 };
 
 export class Input {
@@ -130,7 +130,7 @@ export class Input {
   }
 
   _setupButtons() {
-    const map = { jump: 'jump', interact: 'interact', action: 'action', transform: 'transform', down: 'descend', eat: 'eat' };
+    const map = { jump: 'jump', interact: 'interact', action: 'action', transform: 'transform', down: 'descend', eat: 'eat', helm: 'helm' };
     const runBtn = document.querySelector('.tb-run');
     const toggleRun = (e) => {
       this._firstTouch();
@@ -177,6 +177,7 @@ export class Input {
     c.action = this.pressed.has('action');
     c.transform = this.pressed.has('transform');
     c.eat = this.pressed.has('eat');
+    c.helm = this.pressed.has('helm');
     return c;
   }
 

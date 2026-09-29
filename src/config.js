@@ -72,7 +72,21 @@ export const ISLANDS = [
     ],
   },
   // 작은 섬들 (탐험, 코코넛 보급)
-  { id: 'turtle', name: '거북이 섬', x: 700, z: 650, radius: 110, type: 'tropical', blobs: [{ x: 0, z: 0, r: 80, h: 9, flat: 0.5 }] },
+  {
+    // 위에서 보면 거북이 모양: 등껍질 언덕 + 머리(북쪽) + 네 발 + 꼬리
+    id: 'turtle', name: '거북이 섬', x: 720, z: 680, radius: 215, type: 'sand', turtles: true,
+    desc: '아기 거북이와 어른 거북이 100마리가 사는 섬',
+    blobs: [
+      { x: 0, z: 0, r: 150, h: 4, flat: 0.5 },
+      { x: 0, z: 10, r: 85, h: 18, flat: 0.95 },
+      { x: 0, z: -150, r: 40, h: 6, flat: 0.5 },
+      { x: -120, z: -70, r: 46, h: 3, flat: 0.5 },
+      { x: 120, z: -70, r: 46, h: 3, flat: 0.5 },
+      { x: -95, z: 100, r: 38, h: 3, flat: 0.5 },
+      { x: 95, z: 100, r: 38, h: 3, flat: 0.5 },
+      { x: 0, z: 165, r: 22, h: 2, flat: 0.6 },
+    ],
+  },
   { id: 'palm', name: '야자수 섬', x: -900, z: -300, radius: 120, type: 'tropical', blobs: [{ x: 0, z: 0, r: 90, h: 7, flat: 0.5 }, { x: 20, z: 10, r: 40, h: 18, flat: 1 }] },
   { id: 'coral', name: '산호 섬', x: 400, z: -700, radius: 90, type: 'sand', blobs: [{ x: 0, z: 0, r: 60, h: 5, flat: 0.5 }] },
   { id: 'twin_a', name: '쌍둥이 섬 (동)', x: 1850, z: -1500, radius: 100, type: 'tropical', blobs: [{ x: 0, z: 0, r: 70, h: 16, flat: 0.7, pow: 1.2 }] },

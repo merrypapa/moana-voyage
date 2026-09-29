@@ -17,7 +17,7 @@ export const STAGES = [
   { id: 'tala', ch: 1, title: '할머니의 비밀', text: '서쪽 해변에서 춤추는 탈라 할머니 만나기', target: (g) => g.npcs.tala.pos },
   { id: 'cave', ch: 1, title: '숨겨진 동굴', text: '폭포 옆 숨겨진 동굴에서 북 치기', target: (g) => g.village.drumPos },
   { id: 'heart', ch: 1, title: '테 피티의 심장', text: '탈라 할머니에게 돌아가기', target: (g) => g.npcs.tala.pos },
-  { id: 'setsail', ch: 1, title: '항해의 시작', text: '해변의 배에 올라 키를 잡고 암초 밖으로 나가기', target: (g) => (g.leader.onBoat ? V(REEF.x, 0, REEF.z + REEF.r + 60) : g.boat.root.position) },
+  { id: 'setsail', ch: 1, title: '항해의 시작', text: '해변의 배에 올라 키를 잡고(H/⛵) 암초 밖으로 나가기', target: (g) => (g.leader.onBoat ? V(REEF.x, 0, REEF.z + REEF.r + 60) : g.boat.root.position) },
   { id: 'findMaui', ch: 1, title: '반신 마우이', text: '북동쪽 마우이의 섬을 찾아 마우이 만나기', target: (g) => g.maui.worldPos() },
   { id: 'kakamora', ch: 1, title: '코코넛 해적', text: '카카모라 해적선 4척 물리치기', target: () => V(ZONES.kakamora.x, 0, ZONES.kakamora.z) },
   { id: 'lalotai', ch: 1, title: '괴물의 세계로', text: '괴물의 섬 절벽을 올라 꼭대기에서 뛰어들기', target: (g) => g.locations.spireBase },
@@ -80,7 +80,7 @@ export const LINES = {
     { who: T, text: '해변에 배를 가져다 놓았단다. 내가 없어도… 바다 위의 가오리를 따라가렴.' },
   ],
   sailTutorial: [
-    { who: NAR, text: '배 뒤쪽의 키 앞에서 상호작용(E)을 누르면 조종할 수 있어요.' },
+    { who: NAR, text: '배 위 어디서든 H 키 또는 [⛵ 키 잡기] 버튼을 누르면 바로 배를 조종할 수 있어요.' },
     { who: NAR, text: '앞(W/조이스틱 위) = 돛 올리기, 뒤 = 돛 내리기, 좌우 = 방향 바꾸기. 바람 방향으로 가면 더 빨라요!' },
   ],
   stowaway: [

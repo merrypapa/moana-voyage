@@ -328,7 +328,7 @@ export class Character extends Body {
   pickUp(critter) {
     this.carrying = critter;
     critter.setCarried(this);
-    this.game.audio.play(critter.kind === 'heihei' ? 'bok' : 'oink');
+    this.game.audio.play(critter.kind === 'heihei' ? 'bok' : critter.kind === 'turtle' ? 'pickup' : 'oink');
   }
   dropCarried(intoWater = false) {
     const c = this.carrying;

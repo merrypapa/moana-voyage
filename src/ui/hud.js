@@ -14,7 +14,7 @@ export class HUD {
       objTitle: $('objTitle'), objText: $('objText'), objDist: $('objDist'), compass: $('compass'), arrow: $('compassArrow'),
       prompt: $('prompt'), toast: $('toast'), windArrow: $('windArrow'),
       transformBtn: document.querySelector('.tb-transform'), downBtn: document.querySelector('.tb-down'),
-      actionBtn: document.querySelector('.tb-action'), jumpBtn: document.querySelector('.tb-jump'),
+      actionBtn: document.querySelector('.tb-action'), jumpBtn: document.querySelector('.tb-jump'), helmBtn: document.querySelector('.tb-helm'),
     };
     this.cache = {};
   }
@@ -55,7 +55,12 @@ export class HUD {
     this.el.hunger.style.width = `${c.hunger}%`;
     const inv = g.inventory;
     const invText = FOOD.filter(([k]) => inv[k] > 0).map(([k, e]) => `${e}${inv[k]}`).join('  ') + (g.moana.model.heart.visible || g.flags.hasHeart ? '  💚' : '') + (g.maui.hasHook ? '  🪝' : '');
-    this.set('inv', this.el.inv, invText || '빈 손');
+    const crew = g.turtles.filter((t) => t.crew).length;
+    this.set('inv', this.el.inv, (invText + (crew ? `  🐢${crew}` : '')).trim() || '빈 손');
+    const showHelm = c.onBoat && g.boat.unlocked && c.form !== 'hawk';
+    this.el.helmBtn.classList.toggle('hidden', !showHelm);
+    this.el.helmBtn.classList.toggle('on', c.state === 'helm');
+    this.set('helmLabel', this.el.helmBtn, c.state === 'helm' ? '⛵<br/>키 놓기' : '⛵<br/>키 잡기', 'innerHTML');
 
     // 목표
     const st = g.quests.stage;
@@ -81,7 +86,7 @@ export class HUD {
     const isMaui = c.kind === 'maui';
     this.el.transformBtn.classList.toggle('hidden', !isMaui);
     this.el.downBtn.classList.toggle('hidden', c.form !== 'hawk');
-    this.set('jumpLabel', this.el.jumpBtn, c.form === 'hawk' ? '위로' : c.state === 'helm' ? '키<br/>놓기' : '점프', 'innerHTML');
+    this.set('jumpLabel', this.el.jumpBtn, c.form === 'hawk' ? '위로' : '점프', 'innerHTML');
     this.set('actLabel', this.el.actionBtn, isMaui ? (c.hasHook ? '갈고리' : '주먹') : inv.coconut > 0 ? '코코넛<br/>던지기' : '노<br/>휘두르기', 'innerHTML');
   }
 }
