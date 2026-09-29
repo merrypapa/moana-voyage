@@ -243,6 +243,56 @@ export class Lalotai {
     g.hud.toast(`${josa(who.name, '이', '가')} 갈고리를 되찾았어요! 🪝`);
   }
 
+  // ---------- 2인 플레이 ----------
+  netState() {
+    const T = this.tamatoa;
+    const r = (v) => Math.round(v * 10) / 10;
+    return [r(T.x), r(T.z), Math.round(T.yaw * 100) / 100, T.state, T.flipped ? 1 : 0, this.hookTaken ? 1 : 0, this.geyserOn ? 1 : 0, this.lures.map((l) => [r(l.pos.x), r(l.pos.z)])];
+  }
+  netApply(d) {
+    const [x, z, yaw, state, flipped, hookTaken, geyserOn, lures] = d;
+    const T = this.tamatoa;
+    T.tx = x; T.tz = z; T.tyaw = yaw; T.state = state; T.flipped = !!flipped;
+    if (T.x === undefined || Math.hypot(x - T.x, z - T.z) > 20) { T.x = x; T.z = z; }
+    this.hookTaken = !!hookTaken;
+    this.tMesh.userData.hook.visible = !hookTaken;
+    this.geyserOn = !!geyserOn;
+    this.geyser.visible = !!geyserOn;
+    this.group.visible = this.game.zone === 'lalotai';
+    // 미끼
+    while (this.lures.length > lures.length) { const l = this.lures.pop(); this.group.remove(l.mesh); }
+    while (this.lures.length < lures.length) {
+      const m = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({ color: '#b0ffd8', emissive: '#40ff90', emissiveIntensity: 1.5, metalness: 0.5 }));
+      this.group.add(m);
+      this.lures.push({ pos: new THREE.Vector3(), mesh: m, life: 99 });
+    }
+    lures.forEach(([lx, lz], i) => { this.lures[i].pos.set(lx, 0, lz); this.lures[i].mesh.position.set(lx, 1.2, lz); });
+  }
+  netVisual(dt, t) {
+    if (this.game.zone !== 'lalotai') return;
+    const T = this.tamatoa;
+    const k = 1 - Math.exp(-8 * dt);
+    const px = T.x, pz = T.z;
+    T.x += (T.tx - T.x) * k; T.z += (T.tz - T.z) * k;
+    T.yaw += Math.atan2(Math.sin(T.tyaw - T.yaw), Math.cos(T.tyaw - T.yaw)) * k;
+    const speed = Math.hypot(T.x - px, T.z - pz) / Math.max(dt, 1e-3);
+    this.tMesh.position.set(T.x, 0, T.z);
+    this.tMesh.rotation.y = T.yaw;
+    this.animateTamatoa(dt, t, speed);
+    for (const l of this.lures) { l.mesh.rotation.y += dt * 2; l.mesh.position.y = 1.2 + Math.sin(t * 3) * 0.3; }
+    if (this.geyser.visible) this.geyser.children[0].scale.set(1 + Math.sin(t * 8) * 0.1, 1, 1 + Math.cos(t * 7) * 0.1);
+  }
+  animateTamatoa(dt, t, speed) {
+    const T = this.tamatoa;
+    const u = this.tMesh.userData;
+    u.body.rotation.z += ((T.flipped ? Math.PI : 0) - u.body.rotation.z) * dt * 2;
+    u.body.position.y += ((T.flipped ? 9 : 0) - u.body.position.y) * dt * 2;
+    u.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * (speed > 0.5 ? 8 : 1.5) + i) * (T.flipped ? 0.6 : speed > 0.5 ? 0.35 : 0.08); });
+    u.eyes.forEach((e, i) => { e.rotation.z = Math.sin(t * 1.3 + i) * 0.2; });
+    u.clawBig.rotation.x = Math.sin(t * 2) * 0.15;
+    u.jaw.rotation.x = Math.max(0, Math.sin(t * 4)) * 0.3;
+  }
+
   update(dt, t) {
     if (this.game.zone !== 'lalotai') return;
     const g = this.game;

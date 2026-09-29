@@ -33,6 +33,7 @@ export class Dialog {
   }
 
   showLine() {
+    this.lineNo = (this.lineNo || 0) + 1;
     const l = this.queue.shift();
     this.nameEl.textContent = l.who || '';
     this.full = l.text;
@@ -41,8 +42,32 @@ export class Dialog {
     this.game.audio.play('blip');
   }
 
+  // ---------- 2인 플레이 ----------
+  netState() { return [this.active ? 1 : 0, this.nameEl.textContent, this.full, this.lineNo || 0]; }
+  netApply([active, who, text, lineNo]) {
+    if (!active) {
+      if (this.active) { this.active = false; this.el.classList.add('hidden'); }
+      return;
+    }
+    if (!this.active) { this.active = true; this.el.classList.remove('hidden'); }
+    if (lineNo !== this.lineNo) {
+      this.lineNo = lineNo;
+      this.nameEl.textContent = who;
+      this.full = text;
+      this.typing = 0;
+      this.textEl.textContent = '';
+      this.game.audio.play('blip');
+    }
+  }
+
   next() {
     if (!this.active) return;
+    if (this.game.netRole === 'guest') {
+      // 참가자: 글자가 다 나왔으면 주인에게 "다음" 요청
+      if (this.typing < this.full.length) { this.typing = this.full.length; this.textEl.textContent = this.full; return; }
+      this.game.netSend({ type: 'dnext' });
+      return;
+    }
     if (this.typing < this.full.length) { this.typing = this.full.length; this.textEl.textContent = this.full; return; }
     if (this.queue.length) { this.showLine(); return; }
     this.active = false;

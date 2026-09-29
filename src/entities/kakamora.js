@@ -10,7 +10,7 @@ import { ZONES, ISLANDS } from '../config.js';
 import { approachAngle, clamp } from '../util.js';
 import { bakeHierarchy } from '../world/bake.js';
 
-function buildKakamora(variant) {
+export function buildKakamora(variant) {
   const g = new THREE.Group();
   const nut = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 8), new THREE.MeshStandardMaterial({ map: kakamoraFaceTexture(variant), flatShading: true, roughness: 0.9 }));
   nut.position.y = 0.72;
@@ -98,7 +98,8 @@ export class Kakamora {
       mesh.add(km);
       crew.push(km);
     }
-    const boat = { mesh, crew, x, z, yaw: 0, speed: 0, hp: 2, state: 'chase', boardTimer: 2 + Math.random() * 2, carrying: null, fleeT: 0, sinkT: 0 };
+    this.nextId = (this.nextId || 0) + 1;
+    const boat = { id: this.nextId, mesh, crew, x, z, yaw: 0, speed: 0, hp: 2, state: 'chase', boardTimer: 2 + Math.random() * 2, carrying: null, fleeT: 0, sinkT: 0 };
     mesh.position.set(x, 0, z);
     this.game.scene.add(mesh);
     this.boats.push(boat);
@@ -264,7 +265,8 @@ export class Kakamora {
     g.scene.add(km);
     km.position.copy(start);
     const target = new THREE.Vector3((Math.random() - 0.5) * 3, 0, (Math.random() - 0.5) * 8);
-    this.boarders.push({ mesh: km, home: bt, state: 'jump', t: 0, start, target, local: new THREE.Vector3(), carrying: null, hitCd: 0 });
+    this.nextId = (this.nextId || 0) + 1;
+    this.boarders.push({ id: this.nextId, mesh: km, home: bt, state: 'jump', t: 0, start, target, local: new THREE.Vector3(), carrying: null, hitCd: 0 });
     g.audio.play('jump');
   }
 
@@ -376,6 +378,89 @@ export class Kakamora {
       const u = m.userData;
       u.legs[0].rotation.x = Math.sin(t * 14) * 0.7; u.legs[1].rotation.x = -Math.sin(t * 14) * 0.7;
     }
+  }
+
+  // ---------- 2인 플레이 ----------
+  netState() {
+    const r = (v) => Math.round(v * 10) / 10;
+    const boats = this.boats.map((bt) => [bt.id, r(bt.x), r(bt.z), Math.round(bt.yaw * 100) / 100, bt.state === 'sinking' ? 1 : 0, bt.crew.filter((c) => c.parent === bt.mesh).length]);
+    const tmp = new THREE.Vector3();
+    const bds = this.boarders.map((bd) => {
+      const onDeck = bd.state === 'deck';
+      const p = onDeck ? bd.local : bd.mesh.getWorldPosition(tmp);
+      return [bd.id, onDeck ? 1 : 0, r(p.x), r(onDeck ? bd.mesh.position.y : p.y), r(p.z), Math.round(bd.mesh.rotation.y * 10) / 10, bd.state === 'gone' ? 1 : 0];
+    });
+    return { a: this.active ? 1 : 0, b: boats, d: bds };
+  }
+
+  netApply(d) {
+    const g = this.game;
+    this.active = !!d.a;
+    this.netBoats ||= new Map();
+    this.netBds ||= new Map();
+    const seen = new Set();
+    for (const [id, x, z, yaw, sink, crewN] of d.b) {
+      seen.add(id);
+      let bt = this.netBoats.get(id);
+      if (!bt) {
+        bt = this.spawnBoat(x, z);
+        bt.id = id;
+        bt.yaw = yaw;
+        this.netBoats.set(id, bt);
+      }
+      bt.tx = x; bt.tz = z; bt.tyaw = yaw; bt.crewN = crewN;
+      if (sink && bt.state !== 'sinking') { bt.state = 'sinking'; bt.sinkT = 0; }
+    }
+    for (const [id, bt] of this.netBoats) {
+      if (seen.has(id)) continue;
+      g.scene.remove(bt.mesh);
+      this.boats = this.boats.filter((b) => b !== bt);
+      this.netBoats.delete(id);
+    }
+    const seenB = new Set();
+    for (const [id, onDeck, x, y, z, ry, gone] of d.d) {
+      seenB.add(id);
+      let m = this.netBds.get(id);
+      if (!m) { m = buildKakamora(id % 6); this.netBds.set(id, m); }
+      const parent = onDeck ? g.boat.root : g.scene;
+      if (m.parent !== parent) parent.add(m);
+      m.userData.t = [x, y, z];
+      m.rotation.y = ry;
+      if (gone) m.rotation.x += 0.4;
+    }
+    for (const [id, m] of this.netBds) {
+      if (seenB.has(id)) continue;
+      m.parent && m.parent.remove(m);
+      this.netBds.delete(id);
+    }
+  }
+
+  netVisual(dt, t) {
+    const k = 1 - Math.exp(-10 * dt);
+    for (const bt of this.netBoats ? this.netBoats.values() : []) {
+      if (bt.state === 'sinking') {
+        bt.sinkT += dt;
+        bt.mesh.position.y -= dt * 1.5;
+        bt.mesh.rotation.z += dt * 0.6;
+        continue;
+      }
+      bt.x += (bt.tx - bt.x) * k; bt.z += (bt.tz - bt.z) * k;
+      bt.yaw += Math.atan2(Math.sin(bt.tyaw - bt.yaw), Math.cos(bt.tyaw - bt.yaw)) * k;
+      bt.mesh.position.set(bt.x, waveHeight(bt.x, bt.z, t) + 0.2, bt.z);
+      bt.mesh.rotation.set(Math.sin(t * 2) * 0.05, bt.yaw, Math.cos(t * 1.7) * 0.06);
+      bt.crew.forEach((km, i) => {
+        km.visible = i < bt.crewN;
+        km.position.y = 0.45 + Math.abs(Math.sin(t * 8 + km.id)) * 0.15;
+      });
+    }
+    for (const m of this.netBds ? this.netBds.values() : []) {
+      const [x, y, z] = m.userData.t;
+      if (m.position.distanceTo(new THREE.Vector3(x, y, z)) > 6) m.position.set(x, y, z);
+      else m.position.lerp(new THREE.Vector3(x, y, z), k);
+      const u = m.userData;
+      if (u.legs) { u.legs[0].rotation.x = Math.sin(t * 14) * 0.7; u.legs[1].rotation.x = -Math.sin(t * 14) * 0.7; }
+    }
+    this.updateFriendly(dt, t);
   }
 
   // 2장: 친구가 된 카카모라 (코코넛 선물)

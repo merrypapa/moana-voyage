@@ -29,10 +29,44 @@
       <div class="title-buttons">
         <button id="btnContinue" class="big hidden">이어하기</button>
         <button id="btnNew" class="big">새로 시작</button>
+        <button id="btnCoop" class="big coop">👫 함께 하기 (2인)</button>
         <button id="btnHelp">조작법</button>
       </div>
       <p class="fine">비상업용 팬 게임 · 아이패드 / 컴퓨터</p>
       <p id="loading" class="fine">바다를 준비하는 중…</p>
+    </div>
+  </div>
+
+  <!-- 2인 플레이 대기실 -->
+  <div id="lobby" class="screen hidden">
+    <div class="panel lobby">
+      <h2>👫 함께 하기</h2>
+      <p class="fine">두 기기(아이패드, 컴퓨터)가 모두 인터넷에 연결되어 있어야 해요.</p>
+      <div id="lobbyChoose" class="lobby-choose">
+        <button id="btnHost" class="lobby-card">
+          <span class="lc-emoji">🌺</span><b>방 만들기</b><span>나는 모아나</span>
+        </button>
+        <button id="btnJoinOpen" class="lobby-card">
+          <span class="lc-emoji">🪝</span><b>참가하기</b><span>나는 마우이</span>
+        </button>
+      </div>
+      <div id="lobbyHost" class="hidden">
+        <p>친구에게 이 방 번호를 알려 주세요</p>
+        <div id="roomCode" class="room-code">····</div>
+        <p id="hostStatus" class="lobby-status">방을 만드는 중…</p>
+        <div class="title-buttons">
+          <button id="btnHostNew" class="big" disabled>새로 시작</button>
+          <button id="btnHostContinue" class="hidden" disabled>이어하기</button>
+        </div>
+        <p class="fine">마우이가 나중에 들어와도 괜찮아요. 먼저 시작해도 돼요!</p>
+      </div>
+      <div id="lobbyJoin" class="hidden">
+        <p>모아나가 알려 준 방 번호 4자리</p>
+        <input id="joinCode" class="code-input" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000" />
+        <div class="title-buttons"><button id="btnJoin" class="big">참가하기</button></div>
+        <p id="joinStatus" class="lobby-status"></p>
+      </div>
+      <div class="title-buttons"><button id="btnLobbyBack">← 돌아가기</button></div>
     </div>
   </div>
 
@@ -56,6 +90,7 @@
       <button id="btnSound" class="icon" title="소리">🔊</button>
       <button id="btnMenu" class="icon" title="메뉴 (Esc)">☰</button>
     </div>
+    <div id="netBadge" class="hidden"></div>
     <div id="compass" title="목표 방향"><div id="compassArrow"><svg viewBox="0 0 40 40" width="100%" height="100%"><path d="M20 2 L33 18 L24.5 18 L24.5 36 L15.5 36 L15.5 18 L7 18 Z" fill="#ffd76e" stroke="#7a4a10" stroke-width="2" stroke-linejoin="round"/></svg></div></div>
     <div id="prompt" class="hidden"></div>
     <div id="toast"></div>

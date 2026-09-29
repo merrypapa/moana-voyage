@@ -231,6 +231,75 @@ export class Chapter2 {
     }
   }
 
+  // ---------- 2인 플레이 ----------
+  netState() {
+    const r = (v) => Math.round(v * 10) / 10;
+    return [this.clamActive ? 1 : 0, this.clamStun > 0 ? 1 : 0, this.stormCleared ? 1 : 0, Math.round(storm.amount * 100) / 100,
+      this.strikes.map((s) => [r(s.pos.x), r(s.pos.z), Math.round(s.t * 100) / 100]), this.marker.visible ? 1 : 0,
+      Math.round(this.rising * 1000) / 1000, this.risen ? 1 : 0, this.flowers.map((f) => (f.taken ? 1 : 0)).join('')];
+  }
+  netApply(d) {
+    const [ca, cs, sc, amt, strikes, mk, rising, risen, fl] = d;
+    const g = this.game;
+    this.clamActive = !!ca; this.clamStun = cs ? 1 : 0; this.stormCleared = !!sc;
+    storm.amount = amt; g.stormAmount = amt;
+    this.marker.visible = !!mk;
+    this.rising = rising;
+    if (fl) this.flowers.forEach((f, i) => { f.taken = fl[i] === '1'; });
+    if (risen && !this.risen) { this.risen = true; MOTUFETU.sink = 0; MOTUFETU.mesh.position.y = 0; g.onMotufetuRisen(true); }
+    // 번개
+    this.netStrikes ||= [];
+    while (this.netStrikes.length > strikes.length) { const s = this.netStrikes.pop(); g.scene.remove(s.warn); if (s.bolt) g.scene.remove(s.bolt); }
+    while (this.netStrikes.length < strikes.length) {
+      const warn = new THREE.Mesh(new THREE.RingGeometry(4, 6, 20), this.warnMat);
+      warn.rotation.x = -Math.PI / 2;
+      g.scene.add(warn);
+      this.netStrikes.push({ warn, bolt: null, pos: new THREE.Vector3(), t: 0 });
+    }
+    strikes.forEach(([x, z, t], i) => {
+      const s = this.netStrikes[i];
+      s.pos.set(x, 0, z); s.t = t;
+      s.warn.position.set(x, 1, z);
+      if (t > 1.3 && !s.bolt) {
+        s.bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 1.2, 180, 5), this.boltMat);
+        s.bolt.position.set(x, 90, z);
+        g.scene.add(s.bolt);
+      }
+    });
+  }
+  netVisual(dt, t) {
+    const g = this.game;
+    const q = g.quests;
+    const cu = this.clam.userData;
+    cu.upper.rotation.x = -0.25 - Math.max(0, Math.sin(t * 0.8)) * 0.5;
+    this.whirl.visible = this.clamActive;
+    if (this.clamActive) this.whirl.rotation.y += dt * (this.clamStun > 0 ? 0.2 : 1.2);
+    const mt = this.matangi;
+    mt.root.visible = q.atLeast('clam');
+    mt['wing-1'].rotation.y = Math.sin(t * 2) * 0.3;
+    mt['wing1'].rotation.y = -Math.sin(t * 2) * 0.3;
+    for (const f of this.flowers) { f.mesh.visible = q.is('flowers') && !f.taken; if (f.mesh.visible) f.mesh.rotation.y += dt; }
+    const stormOn = !this.stormCleared;
+    this.stormWall.visible = stormOn;
+    this.stormCloud.visible = stormOn;
+    this.stormWall.rotation.y += dt * 0.05;
+    const lead = g.leader.worldPos(new THREE.Vector3());
+    this.rain.visible = storm.amount > 0.2;
+    if (this.rain.visible) {
+      this.rain.position.set(lead.x, lead.y - 10, lead.z);
+      const p = this.rain.geometry.attributes.position;
+      for (let i = 0; i < p.count; i++) { let y = p.getY(i) - dt * 40; if (y < 0) y += 60; p.setY(i, y); }
+      p.needsUpdate = true;
+      this.rain.material.opacity = storm.amount * 0.8;
+    }
+    for (const s of this.netStrikes || []) s.warn.material.opacity = 0.3 + Math.abs(Math.sin(t * 12)) * 0.5;
+    if (this.marker.visible) this.marker.material.opacity = 0.5 + Math.sin(t * 3) * 0.3;
+    if (this.rising > 0 && !this.risen) {
+      MOTUFETU.sink = 70 * (1 - smoothstep(0, 1, this.rising));
+      MOTUFETU.mesh.position.y = -MOTUFETU.sink;
+    }
+  }
+
   startRise() {
     const g = this.game;
     if (this.rising > 0 || this.risen) return;

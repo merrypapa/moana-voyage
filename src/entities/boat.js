@@ -214,7 +214,35 @@ export class Boat {
     return false;
   }
 
+  // 2인 플레이: 참가자 화면에서는 받은 위치로 움직이고 물리는 계산하지 않는다
+  netState() {
+    const r = (v) => Math.round(v * 100) / 100;
+    return [r(this.x), r(this.z), r(this.yaw), r(this.speed), r(this.throttle), r(this.rudder), this.unlocked ? 1 : 0, this.upgrade, this.box.target, this.box.heihei ? 1 : 0, this.tbox.target, this.root.visible ? 1 : 0];
+  }
+  netApply(d) {
+    const [x, z, yaw, speed, throttle, rudder, unlocked, upgrade, bt, bh, tt, vis] = d;
+    this.net = { x, z, yaw };
+    if (!this.netInit || Math.hypot(x - this.x, z - this.z) > 40) { this.x = x; this.z = z; this.yaw = yaw; this.netInit = true; }
+    this.speed = speed; this.throttle = throttle; this.rudder = rudder;
+    this.unlocked = !!unlocked; this.upgrade = upgrade;
+    this.box.target = bt; this.box.heihei = !!bh; this.tbox.target = tt;
+    this.root.visible = !!vis;
+  }
+
   update(dt, t, game) {
+    if (this.netDriven) {
+      // 받은 위치를 향해 부드럽게 + 받은 속도로 예측 이동
+      const n = this.net;
+      if (n) {
+        n.x += Math.sin(n.yaw) * this.speed * dt;
+        n.z += Math.cos(n.yaw) * this.speed * dt;
+        const k = 1 - Math.exp(-10 * dt);
+        this.x += (n.x - this.x) * k;
+        this.z += (n.z - this.z) * k;
+        this.yaw += wrapAngle(n.yaw - this.yaw) * k;
+      }
+      return this.updateVisual(dt, t, game);
+    }
     const cmd = this.helmsman ? this.helmsman.cmd : null;
     if (cmd) {
       if (cmd.moveY > 0.2) this.throttle = Math.min(1, this.throttle + dt * 0.7 * cmd.moveY);
@@ -250,6 +278,11 @@ export class Boat {
       this.speed *= 0.5;
       game.events.emit('worldEdge');
     }
+    this.updateVisual(dt, t, game);
+  }
+
+  updateVisual(dt, t, game) {
+    const wind = game.wind;
     // 파도에 흔들리기
     const f = this.forward(this._tmp);
     const hb = waveHeight(this.x + f.x * 5, this.z + f.z * 5, t);

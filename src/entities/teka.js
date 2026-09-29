@@ -301,6 +301,75 @@ export class TeKa {
     }
   }
 
+  // ---------- 2인 플레이 ----------
+  netState() {
+    const r = (v) => Math.round(v * 10) / 10;
+    const bombs = this.bombs.map((b) => [r(b.from.x), r(b.from.y), r(b.from.z), r(b.to.x), r(b.to.y), r(b.to.z), Math.round(b.t * 100) / 100]);
+    const h = this.heartFly ? [Math.round(this.heartFly.t * 100) / 100, r(this.heartFly.start.x), r(this.heartFly.start.y), r(this.heartFly.start.z)] : 0;
+    return [this.state, r(this.pos.x), r(this.pos.y), r(this.pos.z), Math.round(this.yaw * 100) / 100, Math.round(this.throwAnim * 100) / 100, bombs, h];
+  }
+  netApply(d) {
+    const [state, x, y, z, yaw, ta, bombs, h] = d;
+    const g = this.game;
+    this.state = state;
+    this.pos.set(x, y, z);
+    this.yaw = yaw;
+    this.throwAnim = ta;
+    this.mesh.visible = !['dormant', 'restored'].includes(state);
+    this.teFiti.visible = state === 'restored';
+    if (state === 'restored' && !g.flags.restoredApplied) { g.flags.restoredApplied = true; restoreBlight(g); }
+    // 불덩이
+    while (this.bombs.length > bombs.length) { const b = this.bombs.pop(); g.scene.remove(b.m, b.ring); }
+    while (this.bombs.length < bombs.length) {
+      const m = new THREE.Mesh(this.bombGeo, this.bombMat);
+      const ring = new THREE.Mesh(new THREE.RingGeometry(5, 7, 24), this.ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      g.scene.add(m, ring);
+      this.bombs.push({ m, ring, from: new THREE.Vector3(), to: new THREE.Vector3(), t: 0 });
+    }
+    bombs.forEach((bd, i) => {
+      const b = this.bombs[i];
+      b.from.set(bd[0], bd[1], bd[2]); b.to.set(bd[3], bd[4], bd[5]); b.t = bd[6];
+    });
+    // 심장이 날아가는 모습
+    if (h && !this.heartFly) {
+      const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.6, 1), new THREE.MeshStandardMaterial({ map: heartTexture(), emissive: '#2fd39a', emissiveIntensity: 2 }));
+      g.scene.add(m);
+      this.heartFly = { m, start: new THREE.Vector3(h[1], h[2], h[3]), t: h[0] };
+    } else if (h) this.heartFly.t = h[0];
+    else if (this.heartFly) { g.scene.remove(this.heartFly.m); this.heartFly = null; }
+  }
+  netVisual(dt, t) {
+    const u = this.mesh.userData;
+    if (!this.mesh.visible) return;
+    u.flames.forEach((f, i) => { f.scale.y = 1 + Math.sin(t * 9 + i) * 0.25; });
+    u.light.intensity = 700 + Math.sin(t * 12) * 150;
+    const kneel = this.state === 'kneel' || this.state === 'restoring';
+    u.body.position.y += ((kneel ? -14 : 0) - u.body.position.y) * dt * 1.5;
+    u.body.rotation.x += ((kneel ? 0.35 : 0) - u.body.rotation.x) * dt * 1.5;
+    u.arms[0].rotation.x = -this.throwAnim * 2.5 + Math.sin(t) * 0.1;
+    u.arms[1].rotation.x = this.state === 'kneel' ? -0.8 : Math.sin(t * 0.8) * 0.15;
+    if (this.state === 'approach' || kneel) u.spiralSpot.material.emissiveIntensity = 0.8 + Math.sin(t * 3) * 0.6;
+    const ground = Math.max(0, heightAt(this.pos.x, this.pos.z)) - 2;
+    this.mesh.position.set(this.pos.x, Math.min(this.pos.y, 0) + ground, this.pos.z);
+    this.mesh.rotation.y = this.yaw;
+    for (const b of this.bombs) {
+      const k = Math.min(1, b.t);
+      b.m.position.lerpVectors(b.from, b.to, k);
+      b.m.position.y += Math.sin(k * Math.PI) * 60;
+      b.ring.position.copy(b.to).setY(b.to.y + 0.6);
+      b.ring.material.opacity = 0.3 + k * 0.5;
+      b.ring.scale.setScalar(1.3 - k * 0.4);
+    }
+    if (this.heartFly) {
+      const hf = this.heartFly;
+      const k = Math.min(1, hf.t);
+      const dst = u.spiralSpot.getWorldPosition(new THREE.Vector3());
+      hf.m.position.lerpVectors(hf.start, dst, k);
+      hf.m.position.y += Math.sin(k * Math.PI) * 10;
+    }
+  }
+
   startReveal() {
     this.state = 'approach';
     for (const b of this.bombs) this.game.scene.remove(b.m, b.ring);

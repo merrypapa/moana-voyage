@@ -186,6 +186,14 @@ export class Critter extends Body {
   }
 }
 
+// 2인 플레이 참가자 화면: 받은 상태로 그리기만
+Critter.prototype.animateOnly = function (dt) {
+  this.animT += dt;
+  const s = this.state;
+  animateHeiheiOrPua(this, s === 'carried' || s === 'stolen' ? 'carried' : s === 'peck' ? 'peck' : 'walk', this.speedNow || 0);
+  if (s !== 'carried' && s !== 'stolen') this.syncMesh();
+};
+
 function animateHeiheiOrPua(c, state, speed) {
   if (c.kind === 'heihei') animateHeihei(c.model, { t: c.animT, speed, state });
   else animatePua(c.model, { t: c.animT, speed });

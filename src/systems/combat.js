@@ -44,6 +44,22 @@ export class Combat {
     g.events.emit('melee', { who, pos: front, power });
   }
 
+  netState() {
+    return this.projectiles.map((p) => [Math.round(p.m.position.x * 10) / 10, Math.round(p.m.position.y * 10) / 10, Math.round(p.m.position.z * 10) / 10]);
+  }
+  netDraw(list) {
+    this.netPool ||= [];
+    while (this.netPool.length < list.length) {
+      const m = new THREE.Mesh(this.nutGeo, mat('#6b4a1c'));
+      this.game.scene.add(m);
+      this.netPool.push(m);
+    }
+    this.netPool.forEach((m, i) => {
+      m.visible = !!list[i];
+      if (list[i]) { m.position.set(list[i][0], list[i][1], list[i][2]); m.rotation.x += 0.3; }
+    });
+  }
+
   update(dt) {
     const g = this.game;
     for (let i = this.projectiles.length - 1; i >= 0; i--) {

@@ -18,7 +18,7 @@ export const STAGES = [
   { id: 'cave', ch: 1, title: '숨겨진 동굴', text: '폭포 옆 숨겨진 동굴에서 북 치기', target: (g) => g.village.drumPos },
   { id: 'heart', ch: 1, title: '테 피티의 심장', text: '탈라 할머니에게 돌아가기', target: (g) => g.npcs.tala.pos },
   { id: 'setsail', ch: 1, title: '항해의 시작', text: '해변의 배에 올라 키를 잡고(H/⛵) 암초 밖으로 나가기', target: (g) => (g.leader.onBoat ? V(REEF.x, 0, REEF.z + REEF.r + 60) : g.boat.root.position) },
-  { id: 'findMaui', ch: 1, title: '반신 마우이', text: '북동쪽 마우이의 섬을 찾아 마우이 만나기', target: (g) => g.maui.worldPos() },
+  { id: 'findMaui', ch: 1, title: '반신 마우이', text: '북동쪽 마우이의 섬을 찾아 마우이 만나기', target: (g) => (g.coop ? g.locations.mauiSpawn : g.maui.worldPos()) },
   { id: 'kakamora', ch: 1, title: '코코넛 해적', text: '카카모라 해적선 4척 물리치기', target: () => V(ZONES.kakamora.x, 0, ZONES.kakamora.z) },
   { id: 'lalotai', ch: 1, title: '괴물의 세계로', text: '괴물의 섬 절벽을 올라 꼭대기에서 뛰어들기', target: (g) => g.locations.spireBase },
   { id: 'tamatoa', ch: 1, title: '반짝이 게 타마토아', text: '빛나는 이끼로 타마토아를 속이고 갈고리 되찾기', target: (g) => g.tamatoa.hookTarget() },
@@ -95,6 +95,11 @@ export const LINES = {
     { who: MOANA, text: '고맙다고 안 했는데요. 이 심장을 테 피티에게 돌려줘야 해요. 같이 가요!' },
     { who: MAUI, text: '그건 저주받은 돌이야! …게다가 난 갈고리가 없으면 변신도 못 한다고.' },
     { who: MAUI, text: '좋아, 일단 배에 태워 줘. 갈고리부터 찾아야겠어.' },
+  ],
+  mauiCoop: [
+    { who: MAUI, text: '여기가 내가 천 년 동안 갇혀 있던 섬이야. 저 날짜 센 자국 보여?' },
+    { who: MOANA, text: '이제 혼자가 아니에요. 같이 테 피티에게 심장을 돌려줘요!' },
+    { who: MAUI, text: '좋아! 그 전에 내 갈고리부터 찾아야 해. 가자, 꼬마 항해사!' },
   ],
   kakamoraStart: [
     { who: MAUI, text: '어이쿠… 코코넛 갑옷을 입은 꼬마 해적들, 카카모라다!' },

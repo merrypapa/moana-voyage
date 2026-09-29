@@ -195,6 +195,13 @@ export class Turtle extends Critter {
     this.speedNow = step / dt;
   }
 
+  animateOnly(dt) {
+    this.animT += dt;
+    if (this.state === 'inBox') return;
+    animateTurtle(this.model, this.animT, this.speedNow || 0, this.state === 'swim' || this.state === 'carried');
+    if (this.state !== 'carried') this.syncMesh();
+  }
+
   update(dt) {
     this.animT += dt;
     const s = this.state;

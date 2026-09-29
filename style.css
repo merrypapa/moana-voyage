@@ -86,6 +86,23 @@ button.icon { width: 48px; height: 48px; padding: 0; font-size: 1.4rem; border-r
 .map-legend { display: flex; gap: 14px; font-size: 0.9rem; }
 .lg-moana { color: #ff7a5c; } .lg-maui { color: #ffd76e; }
 
+/* 2인 대기실 */
+button.coop { background: #2a8fb0; border-color: #bfe9ff; }
+.lobby { text-align: center; max-width: 560px; }
+.lobby-choose { display: flex; gap: 16px; justify-content: center; margin: 18px 0; flex-wrap: wrap; }
+.lobby-card { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 190px; padding: 20px 10px; font-size: 1.1rem;
+  border-radius: 20px; background: rgba(255,255,255,0.12); }
+.lobby-card .lc-emoji { font-size: 2.6rem; }
+.lobby-card span { opacity: 0.85; font-size: 0.95rem; }
+.room-code { font-size: 4rem; font-weight: bold; letter-spacing: 0.3em; margin: 6px 0 10px; color: #ffd76e;
+  text-shadow: 0 3px 0 #0a3550; }
+.code-input { font-size: 2.4rem; width: 220px; text-align: center; letter-spacing: 0.3em; border-radius: 16px; border: 3px solid #ffd76e;
+  background: rgba(0,0,0,0.3); color: #fff; padding: 8px; margin: 8px 0; }
+.lobby-status { min-height: 1.5em; color: #bfe9ff; }
+.lobby-status.err { color: #ffb0a0; }
+#netBadge { position: absolute; left: 50%; top: 156px; transform: translateX(-50%); background: rgba(42,143,176,0.85);
+  padding: 5px 14px; border-radius: 16px; font-size: 0.85rem; white-space: nowrap; }
+
 /* 메뉴 */
 .panel { background: var(--panel); border-radius: 22px; padding: 22px 28px; max-width: 640px; width: 92vw; max-height: 90vh; overflow-y: auto; }
 .panel h2 { margin-top: 0; }

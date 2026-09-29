@@ -110,6 +110,7 @@ export class OceanRescue {
       }
       e.pos.copy(pos);
       e.vel.set(0, 0, 0);
+      r.lastBase = baseP; r.lastTip = pos.clone();
       if (r.style === 'toss') e.facing += dt * 14;
       e.syncMesh?.();
       if (r.mesh) this.shapeTentacle(r, baseP, pos);
@@ -126,6 +127,29 @@ export class OceanRescue {
       }
     }
     this.fading = this.fading.filter((f) => f.life > 0);
+  }
+
+  // 2인 플레이: 물기둥 모양을 참가자에게 보내고, 참가자는 그대로 그린다
+  netState() {
+    const r2 = (v) => Math.round(v * 10) / 10;
+    return this.active.filter((r) => r.mesh && r.lastBase).map((r) => [r2(r.lastBase.x), r2(r.lastBase.y), r2(r.lastBase.z), r2(r.lastTip.x), r2(r.lastTip.y), r2(r.lastTip.z), r.style === 'toss' ? 1 : 0]);
+  }
+  netDraw(list) {
+    this.netPool ||= [];
+    const g = this.game;
+    while (this.netPool.length < list.length) {
+      const r = { mesh: new THREE.Mesh(new THREE.BufferGeometry(), this.mat), blob: new THREE.Mesh(this.blobGeo, this.mat) };
+      r.mesh.frustumCulled = false;
+      g.scene.add(r.mesh, r.blob);
+      this.netPool.push(r);
+    }
+    this.netPool.forEach((r, i) => {
+      const d = list[i];
+      r.mesh.visible = r.blob.visible = !!d;
+      if (!d) return;
+      r.style = d[6] ? 'toss' : 'gentle';
+      this.shapeTentacle(r, new THREE.Vector3(d[0], d[1], d[2]), new THREE.Vector3(d[3], d[4], d[5]));
+    });
   }
 
   shapeTentacle(r, base, tip) {

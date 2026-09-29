@@ -28,6 +28,7 @@ import { WorldMap } from './ui/map.js';
 import { palmGeometry } from './world/props.js';
 import { loadCharacterModels, attachGLB, MODEL_FILES } from './entities/glbModels.js';
 import { clamp, smoothstep, josa } from './util.js';
+import { guestUpdate, hostTick, takeRemoteCommand } from './net/sync.js';
 
 const SAVE_KEY = 'moana-voyage-save-v1';
 
@@ -232,6 +233,7 @@ export class Game {
   leaderFor() { return this.moana; }
 
   switchLeader() {
+    if (this.netRole) { this.hud.toast('2인 플레이에서는 각자 자기 캐릭터를 조종해요 👫'); return; }
     if (!this.flags.mauiJoined) { this.hud.toast('마우이를 만난 뒤에 바꿀 수 있어요!'); return; }
     const next = this.companion;
     this.leader.controlledBy = 'ai';
@@ -414,6 +416,7 @@ export class Game {
   adoptTurtle(t, who) {
     this.herd.take(t);
     const tu = new Turtle(this, t.baby);
+    tu.nid = this.turtleSeq = (this.turtleSeq || 0) + 1;
     const y = t.swim ? 0 : heightAt(t.x, t.z);
     tu.setWorld(new THREE.Vector3(t.x, y, t.z));
     tu.home.set(t.homeX, 0, t.homeZ);
@@ -645,6 +648,10 @@ export class Game {
         }
       }
     }
+    if (this.coop && q.is('findMaui') && !this.dialog.active) {
+      const mi = this.locations.mauiSpawn;
+      if (Math.hypot(lp.x - mi.x, lp.z - mi.z) < 260) this.dialog.show(LINES.mauiCoop, () => q.advance('findMaui'));
+    }
     if (q.is('teka') && Math.hypot(lp.x - TF.x, lp.z - TF.z) < 950) this.teka.awaken();
     if (L.onBoat && b.unlocked && !this.flags.helmHint && !this.dialog.active) {
       this.flags.helmHint = true;
@@ -710,7 +717,7 @@ export class Game {
 
   // ---------- 저장 ----------
   save() {
-    if (!this.started) return;
+    if (!this.started || this.netRole === 'guest') return;
     const L = this.moana;
     const data = {
       v: 1, stage: this.quests.index, flags: this.flags, inv: this.inventory, time: this.timeOfDay,
@@ -756,8 +763,9 @@ export class Game {
     else if (player === null && this.boat.unlocked && q.atLeast('findMaui')) m.placeOnBoat(new THREE.Vector3(0.8, 0, -1.4));
     else m.setWorld(new THREE.Vector3(PLAYER_START.x, heightAt(PLAYER_START.x, PLAYER_START.z), PLAYER_START.z));
     m.state = 'ground';
-    // 마우이
+    // 마우이 (2인 플레이에서는 처음부터 모아나 곁에)
     const mw = this.maui;
+    if (this.coop) this.flags.mauiJoined = true;
     if (this.flags.mauiJoined || q.atLeast('kakamora')) {
       if (m.onBoat) mw.placeOnBoat(new THREE.Vector3(-1.3, 0, 3.2));
       else {
@@ -778,6 +786,7 @@ export class Game {
     for (const baby of this.savedTurtles || []) {
       if (!this.boat.unlocked) break;
       const tu = new Turtle(this, !!baby);
+      tu.nid = this.turtleSeq = (this.turtleSeq || 0) + 1;
       this.turtles.push(tu);
       tu.enterBox();
     }
@@ -800,9 +809,12 @@ export class Game {
   // ---------- 루프 ----------
   start() {
     this.started = true;
-    this.moana.controlledBy = 'local';
-    this.maui.controlledBy = 'ai';
-    this._leader = this.moana;
+    if (this.netRole !== 'guest') {
+      this.moana.controlledBy = 'local';
+      this.maui.controlledBy = this.remote && this.remote.active ? 'remote' : 'ai';
+      this._leader = this.moana;
+    }
+    this.updateNetBadge();
     this.hud.show();
     this.map.reveal(0, 0, 600);
     this.lastT = performance.now();
@@ -816,6 +828,11 @@ export class Game {
     this.lastT = now;
     this.adaptQuality(raw);
     if (!this.paused) this.update(dt);
+    else if (this.netRole === 'host') hostTick(this, dt); // 멈춰도 참가자 화면은 계속 받게
+    else if (this.netRole === 'guest') {
+      this.pingT = (this.pingT || 0) + dt;
+      if (this.pingT > 1) { this.pingT = 0; this.netSend({ type: 'ping' }); }
+    }
     this.input.endFrame();
     this.renderer.render(this.scene, this.camera);
   }
@@ -852,7 +869,20 @@ export class Game {
     }
   }
 
+  netSend(msg) { if (this.session) this.session.send(msg); }
+
+  // 화면 위쪽에 2인 방 상태 표시
+  updateNetBadge() {
+    const el = document.getElementById('netBadge');
+    if (!el) return;
+    if (!this.netRole) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    if (this.netRole === 'host') el.textContent = this.remote && this.remote.active ? `👫 방 ${this.session.code} · 마우이와 함께` : `👫 방 ${this.session.code} · 마우이 기다리는 중`;
+    else el.textContent = `👫 방 ${this.session.code} · 모아나와 함께`;
+  }
+
   update(dt) {
+    if (this.netRole === 'guest') return guestUpdate(this, dt);
     const input = this.input;
     this.time += dt;
     this.timeOfDay = (this.timeOfDay + dt / 600) % 1;
@@ -870,7 +900,8 @@ export class Game {
     cmd.camYaw = this.camRig.yaw;
     L.cmd = cmd;
     const comp = this.companion;
-    comp.cmd = this.aiCommand(comp);
+    const remoteMaui = this.remote && this.remote.active;
+    comp.cmd = remoteMaui ? takeRemoteCommand(this, blocked) : this.aiCommand(comp);
 
     this.boat.update(dt, this.time, this);
     for (const c of this.characters) c.update(dt);
@@ -894,6 +925,18 @@ export class Game {
     }
     if (cmd.eat) this.eat(L);
     if (cmd.helm && !blocked) this.toggleHelm(L);
+    // 2인 플레이: 마우이(참가자)의 상호작용
+    if (remoteMaui) {
+      const rc = comp.cmd;
+      const rit = blocked ? null : this.findInteraction(comp);
+      this.remotePrompt = rit ? rit.label : '';
+      if (rit && rc.interact) {
+        const res = rit.action();
+        if (Array.isArray(res)) this.dialog.show(res);
+      }
+      if (rc.eat) this.eat(comp);
+      if (rc.helm && !blocked) this.toggleHelm(comp);
+    }
 
     this.locations.update(dt, this.time);
     this.lalotai.update(dt, this.time);
@@ -914,6 +957,15 @@ export class Game {
       if (c === L && before > 20 && c.hunger <= 20) this.hud.toast(`${josa(c.name, '이', '가')} 배고파요! 🍽️ (R / 먹기 버튼)`);
     }
 
+    this.updatePresentation(dt, L, lp);
+    this.saveTimer += dt;
+    if (this.saveTimer > 15) { this.saveTimer = 0; this.save(); }
+    if (this.netRole === 'host') hostTick(this, dt);
+  }
+
+  // 지도, 이름표, 화살표, 카메라, 하늘, HUD, 소리 (주인/참가자 공통)
+  updatePresentation(dt, L, lp) {
+    const input = this.input;
     // 지도 밝히기
     if (this.zone === 'surface') {
       const r = L.atMastTop ? 1100 : L.form === 'hawk' ? 400 + lp.y * 3 : 500;
@@ -940,9 +992,6 @@ export class Game {
     this.hud.update();
     this.audio.update(dt, { sailing: this.boat.speed > 3, storm: this.stormAmount, mood: this.musicMood(L) });
     if (this.map.open && Math.floor(this.time * 4) !== Math.floor((this.time - dt) * 4)) this.map.draw();
-
-    this.saveTimer += dt;
-    if (this.saveTimer > 15) { this.saveTimer = 0; this.save(); }
   }
 
   updateGuideArrow() {
