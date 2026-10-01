@@ -31,6 +31,7 @@ import { clamp, smoothstep, josa } from './util.js';
 import { guestUpdate, hostTick, takeRemoteCommand } from './net/sync.js';
 
 const SAVE_KEY = 'moana-voyage-save-v1';
+const MAX_STACK = 6; // 거북이를 머리 위에 쌓을 수 있는 최대 수
 
 class Emitter {
   constructor() { this.h = {}; }
@@ -343,15 +344,51 @@ export class Game {
     if (c.state === 'rescue' || c.state === 'frozen') return null;
     if (c.state === 'helm') return { label: '⛵ 키 놓기', action: () => c.leaveHelm() };
     if (c.state === 'climb') return { label: c.climb.kind === 'mast' ? '⬇️ 돛대에서 손 놓기' : '⬇️ 손 놓기', action: () => { c.climb = null; c.state = 'air'; } };
+    const best = () => {
+      if (!opts.length) return null;
+      opts.sort((a, b2) => (b2.priority - a.priority) || (a.dist - b2.dist));
+      return opts[0];
+    };
     if (c.carrying) {
-      const cr = c.carrying;
+      const list = c.carriedList;
+      const cr = list[0];
+      const allTurtles = list.every((x) => x.kind === 'turtle');
+      const n = list.length;
       if (cr.kind === 'heihei' && c.onBoat && Math.hypot(c.pos.x - BOX.x, c.pos.z - BOX.z) < 2) {
-        return { label: '📦 헤이헤이를 상자에 넣기', action: () => { c.carrying = null; cr.enterBox(); this.hud.toast('헤이헤이가 상자 속에 쏙! 🐔📦'); } };
+        return { label: '📦 헤이헤이를 상자에 넣기', action: () => { cr.enterBox(); this.hud.toast('헤이헤이가 상자 속에 쏙! 🐔📦'); } };
       }
-      if (cr.kind === 'turtle' && c.onBoat && Math.hypot(c.pos.x - TBOX.x, c.pos.z - TBOX.z) < 2.1) {
-        return { label: `🐢 ${cr.name}를 거북이 상자에 넣기`, action: () => { c.carrying = null; cr.enterBox(); this.hud.toast(`🐢 거북이 상자에 쏙! (${this.boat.tbox.list.length}마리)`); } };
+      if (allTurtles && c.onBoat && Math.hypot(c.pos.x - TBOX.x, c.pos.z - TBOX.z) < 2.1) {
+        return {
+          label: n > 1 ? `🐢 안은 거북이 ${n}마리 모두 거북이 상자에 넣기` : `🐢 ${josa(cr.name, '을', '를')} 거북이 상자에 넣기`,
+          action: () => { for (const t of [...list]) t.enterBox(); this.hud.toast(`🐢 거북이 상자에 쏙! (${this.boat.tbox.list.length}마리)`); },
+        };
       }
-      return { label: `${cr.name} 내려놓기`, action: () => c.dropCarried() };
+      const cp0 = c.worldPos(new THREE.Vector3());
+      // 거북이는 머리 위에 더 쌓을 수 있다
+      if (allTurtles && n < MAX_STACK) {
+        const more = `(${n + 1}/${MAX_STACK})`;
+        if (!c.onBoat && this.zone === 'surface') {
+          const h = this.herd.nearest(cp0, 1.9);
+          if (h) add(h.d, `🐢 ${h.t.baby ? '아기 거북이' : '거북이'} 하나 더 안기 ${more}`, () => this.adoptTurtle(h.t, c), 2);
+        }
+        for (const t of this.turtles) {
+          if (['inBox', 'carried', 'swim', 'rescue'].includes(t.state) || t.onBoat !== c.onBoat) continue;
+          const d = t.onBoat ? t.pos.distanceTo(c.pos) : t.pos.distanceTo(cp0);
+          if (d < 1.6) add(d, `🐢 ${t.name} 하나 더 안기 ${more}`, () => c.pickUp(t), 2);
+        }
+      }
+      // 안은 채로 배에 타기 / 섬에 내리기
+      if (this.zone === 'surface' && b.unlocked) {
+        if (c.onBoat) {
+          const land = this.findLandingPoint();
+          if (land) add(5, '🏝️ 안은 채로 섬에 내리기', () => this.rescue.start(c, { style: 'leap', to: land }), 1);
+        } else {
+          const bd = Math.hypot(cp0.x - b.x, cp0.z - b.z);
+          if (bd < 26) add(bd * 0.3, '⛵ 안은 채로 배에 타기', () => this.rescue.start(c, { style: 'leap', to: 'boat' }), 1);
+        }
+      }
+      add(99, n > 1 ? `안은 동물 ${n}마리 내려놓기` : `${cr.name} 내려놓기`, () => c.dropCarried(), -1);
+      return best();
     }
     if (c.form === 'hawk') return null;
     const cp = c.worldPos(new THREE.Vector3());
@@ -407,9 +444,7 @@ export class Game {
       const d = Math.hypot(p.x - cp.x, p.z - cp.z);
       if (d < it.radius && Math.abs(p.y - cp.y) < Math.max(6, it.radius)) add(d, typeof it.label === 'function' ? it.label(c) : it.label, () => it.action(c), it.priority || 0);
     }
-    if (!opts.length) return null;
-    opts.sort((a, b2) => (b2.priority - a.priority) || (a.dist - b2.dist));
-    return opts[0];
+    return best();
   }
 
   // 섬의 거북이를 안아 들면 따라다니는 거북이가 된다

@@ -324,20 +324,44 @@ export class Character extends Body {
     }
   }
 
-  // 헤이헤이/푸아 들기
+  // 헤이헤이/푸아/거북이 들기. 거북이는 머리 위에 여러 마리 쌓을 수 있다
+  get carriedList() { return this.carried || (this.carried = []); }
+
   pickUp(critter) {
-    this.carrying = critter;
+    this.carriedList.push(critter);
+    this.carrying = this.carried[0];
     critter.setCarried(this);
+    this.restack();
     this.game.audio.play(critter.kind === 'heihei' ? 'bok' : critter.kind === 'turtle' ? 'pickup' : 'oink');
   }
+
+  // 상자에 넣거나 빼앗겼을 때 목록에서 빼기
+  removeCarried(critter) {
+    this.carried = this.carriedList.filter((c) => c !== critter);
+    this.carrying = this.carried[0] || null;
+    this.restack();
+  }
+
+  restack() {
+    let y = this.model.H * 1.02;
+    for (const c of this.carriedList) {
+      c.mesh.position.set(0, y, 0.05);
+      c.mesh.rotation.set(0, 0, 0);
+      y += c.carryH || 0.5;
+    }
+  }
+
   dropCarried(intoWater = false) {
-    const c = this.carrying;
-    if (!c) return;
+    const list = [...this.carriedList];
+    if (!list.length) return;
+    this.carried = [];
     this.carrying = null;
-    const f = this.facing;
-    const p = this.pos.clone();
-    p.x += Math.sin(f) * 0.9; p.z += Math.cos(f) * 0.9; p.y += 0.3;
-    c.release(this.onBoat, p, intoWater);
+    list.forEach((c, i) => {
+      const f = this.facing + (i - (list.length - 1) / 2) * 0.55;
+      const p = this.pos.clone();
+      p.x += Math.sin(f) * 0.9; p.z += Math.cos(f) * 0.9; p.y += 0.3;
+      c.release(this.onBoat, p, intoWater);
+    });
   }
 
   animate(dt) {

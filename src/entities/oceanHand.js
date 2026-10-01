@@ -31,7 +31,7 @@ export class OceanRescue {
     if (entity.state === 'helm' && entity.leaveHelm) entity.leaveHelm();
     if (entity.climb) entity.climb = null;
     if (entity.form === 'hawk') entity.toggleHawk?.();
-    if (entity.carrying) entity.dropCarried?.();
+    if (entity.carrying && style !== 'leap') entity.dropCarried?.();
     const start = entity.worldPos(new THREE.Vector3());
     entity.setWorld(start);
     entity.state = 'rescue';

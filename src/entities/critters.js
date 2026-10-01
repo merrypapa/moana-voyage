@@ -24,6 +24,7 @@ export class Critter extends Body {
     this.carrier = null;
     this.boxTimer = 0;
     this.nextBoxThink = 15 + Math.random() * 20;
+    this.carryH = 0.6; // 머리 위에 쌓을 때 높이
   }
 
   get inBox() { return this.state === 'inBox'; }
@@ -60,7 +61,7 @@ export class Critter extends Body {
   // 상자에 들어가기 / 나오기
   enterBox() {
     const b = this.boat;
-    if (this.carrier) { this.carrier.carrying = null; this.carrier = null; }
+    if (this.carrier) { this.carrier.removeCarried(this); this.carrier = null; }
     if (!this.onBoat || this.mesh.parent !== b.root) {
       this.onBoat = false;
       this.placeOnBoat(new THREE.Vector3(BOX.x, BOX.h, BOX.z));

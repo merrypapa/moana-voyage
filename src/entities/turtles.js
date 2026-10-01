@@ -79,6 +79,7 @@ export class Turtle extends Critter {
     this.swimT = 0;
     this.followT = 0;
     this.radius = baby ? 0.2 : 0.4;
+    this.carryH = baby ? 0.17 : 0.34;
   }
 
   release(onBoat, localPos, intoWater) {
@@ -89,7 +90,7 @@ export class Turtle extends Critter {
 
   enterBox() {
     const b = this.boat;
-    if (this.carrier) { this.carrier.carrying = null; this.carrier = null; }
+    if (this.carrier) { this.carrier.removeCarried(this); this.carrier = null; }
     if (!this.onBoat || this.mesh.parent !== b.root) {
       this.onBoat = false;
       this.placeOnBoat(new THREE.Vector3(TBOX.x, TBOX.h, TBOX.z));

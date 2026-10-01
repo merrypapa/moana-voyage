@@ -188,16 +188,16 @@ function applyCritter(game, e, d) {
   if (d.car) {
     const who = chars[d.car];
     if (e.carrier !== who) {
-      if (e.carrier) e.carrier.carrying = null;
+      if (e.carrier) e.carrier.removeCarried(e);
       e.state = 'idle';
       e.setCarried(who);
-      who.carrying = e;
+      if (!who.carriedList.includes(e)) who.carriedList.push(e);
     }
     e.state = 'carried';
     e.mesh.visible = true;
     return;
   }
-  if (e.carrier) { e.carrier.carrying = null; e.carrier = null; e.onBoat = false; }
+  if (e.carrier) { e.carrier.removeCarried(e); e.carrier = null; e.onBoat = false; }
   if (d.s === 'stolen') {
     if (e.mesh.parent !== game.scene) { game.scene.add(e.mesh); e.onBoat = false; }
     e.netP = new THREE.Vector3(d.p[0], d.p[1], d.p[2]);
@@ -234,7 +234,6 @@ function guestApply(game, s, first) {
     c.hp = d.hp; c.maxHp = d.mh; c.hunger = d.hu;
     if (c.hasHook !== !!d.hk) c.setHook(!!d.hk);
     c.swing = d.sw; c.climbMoving = !!d.cm; c.running = !!d.rn; c.flapping = !!d.fl; c.invuln = d.iv ? 0.5 : 0;
-    if (!Object.values(s.cr).some((x) => x.car === k) && !s.tu.some((x) => x.car === k)) c.carrying = null;
   }
   applyCritter(game, game.heihei, s.cr.heihei);
   applyCritter(game, game.pua, s.cr.pua);
@@ -260,6 +259,12 @@ function guestApply(game, s, first) {
     game.netTurtles.delete(id);
   }
   game.boat.tbox.list = game.turtles.filter((t) => t.state === 'inBox');
+  // 안고 있는 목록 정리 (머리 위에 쌓기)
+  for (const c of game.characters) {
+    c.carried = c.carriedList.filter((x) => x.carrier === c);
+    c.carrying = c.carried[0] || null;
+    c.restack();
+  }
   if (s.ht) for (const i of s.ht) { const t = game.herd.list[i]; if (t && !t.taken) game.herd.take(t); }
   if (s.map) game.map.load(s.map);
   game.netPrompt = s.pm;
